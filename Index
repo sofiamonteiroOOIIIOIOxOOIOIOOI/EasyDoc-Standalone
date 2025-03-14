@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasyDoc 2.0 - Create Documents Easily</title>
+    <!-- Include jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            background: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .sidebar {
+            background: #fff;
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            width: 100%;
+        }
+
+        .sidebar h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .document-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .document-type-btn {
+            padding: 8px 15px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+            flex: 1 1 100px;
+            text-align: center;
+        }
+
+        .document-type-btn:hover {
+            background: #d0d0d0;
+        }
+
+        .document-type-btn.active {
+            background: #4A90E2;
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .template-section {
+            display: none;
+        }
+
+        .template-section h2 {
+            font-size: 1.25rem;
+            margin-bottom: 10px;
+        }
+
+        .template-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .template-preview {
+            width: 80px;
+            height: 80px;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s;
+            flex: 1 1 80px;
+        }
+
+        .template-preview:hover {
+            background: #d0d0d0;
+        }
+
+        .template-preview.active {
+            background: #4A90E2;
+            color: white;
+        }
+
+        .template-preview p {
+            margin: 0;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .action-buttons button {
+            padding: 8px 15px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            flex: 1 1 100px;
+            text-align: center;
+        }
+
+        .action-buttons button:hover {
+            background: #357ABD;
+        }
+
+        .action-buttons .save-btn {
+            background: #28A745;
+        }
+
+        .action-buttons .save-btn:hover {
+            background: #218838;
+        }
+
+        .action-buttons .load-btn {
+            background: #FFC107;
+            color: #333;
+        }
+
+        .action-buttons .load-btn:hover {
+            background: #E0A800;
+        }
+
+        .action-buttons .clear-btn {
+            background: #E94B3C;
+        }
+
+        .action-buttons .clear-btn:hover {
+            background: #D43A2A;
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        .input-section h2 {
+            font-size: 1.25rem;
+            margin-bottom: 10px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .add-btn {
+            padding: 8px 15px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .add-btn:hover {
+            background: #357ABD;
+        }
+
+        .feature-list {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .feature-list div {
+            padding: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .feature-list div:hover {
+            background: #f0f0f0;
+        }
+
+        .preview-section {
+            flex: 1;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: auto;
+        }
+
+        .preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+        }
+
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 300px;
+            text-align: center;
+        }
+
+        .modal p {
+            margin: 0 0 20px;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .modal-buttons .confirm-btn {
+            background: #28A745;
+            color: white;
+        }
+
+        .modal-buttons .confirm-btn:hover {
+            background: #218838;
+        }
+
+        .modal-buttons .cancel-btn {
+            background: #E94B3C;
+            color: white;
+        }
+
+        .modal-buttons .cancel-btn:hover {
+            background: #D43A2A;
+        }
+
+        /* Responsive Design */
+        @media (min-width: 768px) {
+            .container {
+                flex-direction: row;
+                padding: 20px;
+            }
+
+            .sidebar {
+                width: 250px;
+                border-bottom: none;
+                border-right: 1px solid #ddd;
+            }
+
+            .document-types {
+                flex-direction: column;
+            }
+
+            .document-type-btn {
+                flex: none;
+                width: 100%;
+                text-align: left;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .template-preview {
+                width: 100px;
+                height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Document Type</h2>
+            <div class="document-types">
+                <button class="document-type-btn" onclick="selectDocument('CV')">CV</button>
+                <button class="document-type-btn" onclick="selectDocument('Portfolio')">Portfolio</button>
+                <button class="document-type-btn" onclick="selectDocument('Contract')">Contract</button>
+                <button class="document-type-btn" onclick="selectDocument('Receipt')">Receipt</button>
+                <button class="document-type-btn" onclick="selectDocument('MindMap')">Mind Map</button>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="template-section" id="templateSection">
+                <h2>Select a Template</h2>
+                <div class="template-options" id="templateOptions"></div>
+            </div>
+            <div class="action-buttons">
+                <button onclick="updatePreview()">Preview</button>
+                <button onclick="generatePDF()">Generate PDF</button>
+                <button class="save-btn" onclick="saveToFile()">Save to File</button>
+                <button class="load-btn" onclick="triggerFileInput()">Load from File</button>
+                <input type="file" id="fileInput" class="hidden-file-input" accept=".json" onchange="loadFromFile(event)">
+                <button class="clear-btn" onclick="showClearConfirmation()">Clear Saved Data</button>
+            </div>
+            <div class="input-section" id="inputSection">
+                <h2>Fill the Details</h2>
+                <p>Please select a document type and template.</p>
+            </div>
+            <div class="preview-section">
+                <iframe class="preview-iframe" id="pdfPreview"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="clearModal">
+        <div class="modal">
+            <p>Are you sure you want to clear all saved data? This will reset the form.</p>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="confirmClear()">Yes</button>
+                <button class="cancel-btn" onclick="hideClearConfirmation()">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Data Modal -->
+    <div class="modal-overlay" id="saveModal">
+        <div class="modal">
+            <p>Copy the following JSON to save your data:</p>
+            <textarea id="saveText" rows="10" cols="40" readonly></textarea>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="hideSaveModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let state = {
+            selectedDocument: '',
+            selectedTemplate: '',
+            additionalFields: [],
+            inputValues: {}
+        };
+
+        const documentFields = {
+            CV: {
+                template1: ['Name', 'Email', 'Phone', 'Address', 'About Me', 'Education', 'Experience'],
+                template2: ['Name', 'Email', 'Phone', 'Address', 'Summary', 'Education', 'Work History'],
+                template3: ['Name', 'Email', 'Phone', 'Address', 'Profile', 'Education', 'Projects']
+            },
+            Portfolio: {
+                template1: ['Introduction', 'Projects', 'Skills', 'Contact Info'],
+                template2: ['About Me', 'Work Samples', 'Achievements', 'Links'],
+                template3: ['Overview', 'Portfolio Items', 'Testimonials', 'Social Links']
+            },
+            Contract: {
+                template1: ['Parties Involved', 'Terms', 'Duration', 'Signatures'],
+                template2: ['Agreement Details', 'Conditions', 'Payment', 'Signatures'],
+                template3: ['Contract Scope', 'Obligations', 'Timeline', 'Signatures']
+            },
+            Receipt: {
+                template1: ['Seller Info', 'Buyer Info', 'Items', 'Total Amount'],
+                template2: ['Transaction Date', 'Items Purchased', 'Price', 'Payment Method'],
+                template3: ['Receipt Number', 'Items', 'Amount Paid', 'Date']
+            },
+            MindMap: {
+                template1: ['Central Idea', 'Main Branches', 'Sub-Branches', 'Notes'],
+                template2: ['Core Concept', 'Categories', 'Details', 'Connections'],
+                template3: ['Main Topic', 'Ideas', 'Sub-Ideas', 'Summary']
+            }
+        };
+
+        const templates = {
+            CV: ['template1', 'template2', 'template3'],
+            Portfolio: ['template1', 'template2', 'template3'],
+            Contract: ['template1', 'template2', 'template3'],
+            Receipt: ['template1', 'template2', 'template3'],
+            MindMap: ['template1', 'template2', 'template3']
+        };
+
+        // Modal Functions
+        function showClearConfirmation() {
+            document.getElementById('clearModal').style.display = 'block';
+        }
+
+        function hideClearConfirmation() {
+            document.getElementById('clearModal').style.display = 'none';
+        }
+
+        function confirmClear() {
+            clearState();
+            hideClearConfirmation();
+        }
+
+        function showSaveModal() {
+            const jsonString = JSON.stringify(state, null, 2);
+            document.getElementById('saveText').value = jsonString;
+            document.getElementById('saveModal').style.display = 'block';
+        }
+
+        function hideSaveModal() {
+            document.getElementById('saveModal').style.display = 'none';
+        }
+
+        // File Save/Load Functions
+        function saveToFile() {
+            try {
+                const jsonString = JSON.stringify(state, null, 2);
+                console.log('State to save:', jsonString);
+                showSaveModal();
+                try {
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `easyDocState-${state.selectedDocument || 'document'}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    console.log('File download attempted.');
+                } catch (downloadError) {
+                    console.warn('Automatic download failed, using manual copy:', downloadError);
+                    alert('Automatic file download failed. Please copy the JSON from the modal.');
+                }
+            } catch (error) {
+                console.error('Save failed:', error);
+                alert('Error preparing save data. Check console.');
+            }
+        }
+
+        function triggerFileInput() {
+            console.log('Triggering file input...');
+            document.getElementById('fileInput').click();
+        }
+
+        function loadFromFile(event) {
+            console.log('Loading file...');
+            const file = event.target.files[0];
+            if (!file) {
+                console.log('No file selected.');
+                return;
+            }
+            if (!file.name.endsWith('.json')) {
+                alert('Please upload a valid JSON file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                console.log('File read completed. Raw content:', e.target.result);
+                try {
+                    const loadedState = JSON.parse(e.target.result);
+                    console.log('Parsed state:', loadedState);
+
+                    // Apply loaded state
+                    state.selectedDocument = loadedState.selectedDocument || '';
+                    state.selectedTemplate = loadedState.selectedTemplate || '';
+                    state.additionalFields = Array.isArray(loadedState.additionalFields) ? loadedState.additionalFields : [];
+                    state.inputValues = typeof loadedState.inputValues === 'object' && loadedState.inputValues !== null ? loadedState.inputValues : {};
+
+                    console.log('Applied state:', state);
+                    resetUI();
+
+                    // Update UI immediately
+                    if (state.selectedDocument) {
+                        console.log('Selecting document:', state.selectedDocument);
+                        selectDocument(state.selectedDocument, true);
+                    }
+                    if (state.selectedTemplate) {
+                        console.log('Selecting template:', state.selectedTemplate);
+                        selectTemplate(state.selectedTemplate, true);
+                    }
+
+                    // Force DOM refresh
+                    document.body.style.display = 'none';
+                    setTimeout(() => {
+                        document.body.style.display = 'block';
+                        console.log('DOM refreshed, updating fields...');
+                        updateInputFields();
+                        if (state.selectedDocument && state.selectedTemplate) {
+                            updatePreview();
+                        }
+                    }, 100);
+                } catch (error) {
+                    console.error('Load failed:', error);
+                    alert('Error loading file. Check console or ensure valid JSON.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearState() {
+            state = {
+                selectedDocument: '',
+                selectedTemplate: '',
+                additionalFields: [],
+                inputValues: {}
+            };
+            console.log('State cleared:', state);
+            resetUI();
+            updateInputFields();
+        }
+
+        // UI Update Functions
+        function resetUI() {
+            console.log('Resetting UI...');
+            document.querySelectorAll('.document-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.template-preview').forEach(preview => preview.classList.remove('active'));
+            document.getElementById('templateSection').style.display = 'none';
+            document.getElementById('pdfPreview').srcdoc = '';
+        }
+
+        function selectDocument(docType, updateFields = true) {
+            console.log('Selecting document:', docType);
+            state.selectedDocument = docType;
+            state.selectedTemplate = '';
+            state.additionalFields = [];
+
+            document.querySelectorAll('.document-type-btn').forEach(btn => btn.classList.remove('active'));
+            const docButton = document.querySelector(`.document-type-btn[onclick="selectDocument('${docType}')"]`);
+            if (docButton) {
+                docButton.classList.add('active');
+                console.log('Document button highlighted:', docType);
+            } else {
+                console.warn('Document button not found:', docType);
+            }
+
+            const templateSection = document.getElementById('templateSection');
+            const templateOptions = document.getElementById('templateOptions');
+            templateSection.style.display = 'block';
+            templateOptions.innerHTML = '';
+            templates[docType].forEach(template => {
+                const preview = document.createElement('div');
+                preview.className = `template-preview ${template}`;
+                preview.innerHTML = `<p>${template.charAt(0).toUpperCase() + template.slice(1)}<br>Sample</p>`;
+                preview.onclick = () => selectTemplate(template);
+                templateOptions.appendChild(preview);
+            });
+
+            if (updateFields) {
+                console.log('updateFields is true, updating input fields immediately.');
+                updateInputFields();
+            }
+        }
+
+        function selectTemplate(template, updateFields = true) {
+            console.log('Selecting template:', template);
+            state.selectedTemplate = template;
+
+            document.querySelectorAll('.template-preview').forEach(preview => preview.classList.remove('active'));
+            const templatePreview = document.querySelector(`.template-preview.${template}`);
+            if (templatePreview) {
+                templatePreview.classList.add('active');
+                console.log('Template preview highlighted:', template);
+            } else {
+                console.warn('Template preview not found:', template);
+            }
+
+            if (updateFields) {
+                console.log('updateFields is true, updating input fields immediately.');
+                updateInputFields();
+            }
+        }
+
+        function updateInputFields() {
+            console.log('Updating input fields...');
+            console.log('Current state:', state);
+            const inputSection = document.getElementById('inputSection');
+            inputSection.innerHTML = '<h2>Fill the Details</h2>';
+
+            if (state.selectedDocument && state.selectedTemplate) {
+                const fields = documentFields[state.selectedDocument][state.selectedTemplate];
+                console.log(`Fields for ${state.selectedDocument} - ${state.selectedTemplate}:`, fields);
+                fields.forEach(field => {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'input-field';
+                    input.id = field.replace(/\s/g, '');
+                    input.placeholder = `${field}...`;
+                    if (state.inputValues[input.id]) {
+                        input.value = state.inputValues[input.id];
+                        console.log(`Restored field: ${field} with value: ${input.value}`);
+                    } else {
+                        console.log(`No value found for field: ${field}`);
+                    }
+                    inputSection.appendChild(input);
+                });
+
+                state.additionalFields.forEach((field, index) => {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'input-field';
+                    input.id = `additional-${field}-${index}`;
+                    input.placeholder = `${field}...`;
+                    if (state.inputValues[input.id]) {
+                        input.value = state.inputValues[input.id];
+                        console.log(`Restored additional field: ${field} with value: ${input.value}`);
+                    } else {
+                        console.log(`No value found for additional field: ${field}`);
+                    }
+                    inputSection.appendChild(input);
+                });
+
+                const buttonDiv = document.createElement('div');
+                buttonDiv.style.position = 'relative';
+                buttonDiv.innerHTML = `
+                    <button class="add-btn" onclick="toggleFeatureList()">Add New Feature</button>
+                    <div class="feature-list" id="featureList">
+                        <div onclick="addFeature('Title')">Title</div>
+                        <div onclick="addFeature('Text')">Text</div>
+                        <div onclick="addFeature('Email')">Email</div>
+                        <div onclick="addFeature('Number')">Number</div>
+                        <div onclick="addFeature('Date')">Date</div>
+                        <div onclick="addFeature('Address')">Address</div>
+                        <div onclick="addFeature('Skills')">Skills</div>
+                        <div onclick="addFeature('Experience')">Experience</div>
+                        <div onclick="addFeature('Education')">Education</div>
+                        <div onclick="addFeature('Certifications')">Certifications</div>
+                    </div>
+                `;
+                inputSection.appendChild(buttonDiv);
+
+                const featureList = document.getElementById('featureList');
+                if (!document.featureListListener) {
+                    document.addEventListener('click', handleClickOutside);
+                    document.featureListListener = true;
+                }
+            } else {
+                inputSection.innerHTML += '<p>Please select a document type and template.</p>';
+                console.log('No document or template selected, showing placeholder message.');
+            }
+        }
+
+        function saveInputValues() {
+            console.log('Saving input values...');
+            const inputs = document.querySelectorAll('.input-field');
+            state.inputValues = {};
+            inputs.forEach(input => {
+                if (input.value) {
+                    state.inputValues[input.id] = input.value;
+                    console.log(`Saved field: ${input.id} with value: ${input.value}`);
+                }
+            });
+            console.log('Updated input values:', state.inputValues);
+        }
+
+        // Feature List Handling
+        function toggleFeatureList() {
+            console.log('Toggling feature list...');
+            const featureList = document.getElementById('featureList');
+            if (featureList) {
+                featureList.style.display = featureList.style.display === 'block' ? 'none' : 'block';
+            } else {
+                console.warn('Feature list not found.');
+            }
+        }
+
+        function addFeature(feature) {
+            console.log('Adding feature:', feature);
+            state.additionalFields.push(feature);
+            saveInputValues();
+            updateInputFields();
+            toggleFeatureList();
+        }
+
+        function handleClickOutside(event) {
+            const featureList = document.getElementById('featureList');
+            const addButton = document.querySelector('.add-btn');
+            if (featureList && !featureList.contains(event.target) && event.target !== addButton) {
+                featureList.style.display = 'none';
+            }
+        }
+
+        // Preview and PDF Generation
+        function extractFieldValues() {
+            console.log('Extracting field values...');
+            if (!state.selectedDocument || !state.selectedTemplate) {
+                alert('Please select a document type and template.');
+                return null;
+            }
+
+            const fields = documentFields[state.selectedDocument][state.selectedTemplate];
+            let name = '', email = '', phone = '', address = '';
+            let otherFields = [];
+
+            fields.forEach(field => {
+                const inputValue = document.getElementById(field.replace(/\s/g, '')).value;
+                if (field === 'Name') name = inputValue;
+                else if (field === 'Email') email = inputValue;
+                else if (field === 'Phone') phone = inputValue;
+                else if (field === 'Address') address = inputValue;
+                else {
+                    otherFields.push({ field, value: inputValue || `Enter your ${field.toLowerCase()}...` });
+                }
+            });
+
+            state.additionalFields.forEach((field, index) => {
+                const inputValue = document.getElementById(`additional-${field}-${index}`).value;
+                otherFields.push({ field, value: inputValue || `Enter your ${field.toLowerCase()}...` });
+            });
+
+            console.log('Extracted values:', { name, email, phone, address, otherFields });
+            return { name, email, phone, address, otherFields };
+        }
+
+        function generatePreviewContent() {
+            const extracted = extractFieldValues();
+            if (!extracted) return null;
+
+            const { name, email, phone, address, otherFields } = extracted;
+            let previewContent = `
+                <div class="preview-content">
+                    <div class="preview-header">
+                        <h1>${name || 'Your Name'}</h1>
+                    </div>
+                    <div class="preview-sidebar">
+                        <p>Email: ${email || 'your.email@example.com'}</p>
+                        <p>Phone: ${phone || '(123) 456-7890'}</p>
+                        <p>Address: ${address || '123 Main St, City'}</p>
+                    </div>
+                    <div class="decorative-line"></div>
+                    <div class="preview-main">
+                        <h2>${state.selectedDocument}</h2>
+            `;
+
+            otherFields.forEach(({ field, value }) => {
+                previewContent += `
+                    <h2>${field}</h2>
+                    <p>${value}</p>
+                `;
+            });
+
+            previewContent += `</div></div>`;
+            return previewContent;
+        }
+
+        function updatePreview() {
+            console.log('Updating preview...');
+            const previewContent = generatePreviewContent();
+            if (!previewContent) return;
+
+            const iframe = document.getElementById('pdfPreview');
+            iframe.srcdoc = `
+                <html>
+                <head>
+                    <style>
+                        body { margin: 0; padding: 0; font-family: Helvetica, Arial, sans-serif; }
+                        .preview-content {
+                            font-family: Helvetica, Arial, sans-serif;
+                            background: #fff;
+                            color: #333;
+                            width: 100%;
+                            min-height: 100%;
+                            position: relative;
+                        }
+                        .preview-header {
+                            background: #4A90E2;
+                            height: 50mm;
+                            width: 100%;
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                        }
+                        .preview-header h1 {
+                            color: white;
+                            font-size: 24px;
+                            font-weight: bold;
+                            position: absolute;
+                            top: 20mm;
+                            left: 20mm;
+                            margin: 0;
+                        }
+                        .preview-sidebar {
+                            background: #f5f5f5;
+                            width: 50mm;
+                            position: absolute;
+                            top: 50mm;
+                            bottom: 0;
+                            left: 0;
+                            padding: 10mm;
+                            box-sizing: border-box;
+                        }
+                        .preview-sidebar p {
+                            font-size: 12px;
+                            color: #333;
+                            margin: 5px 0;
+                        }
+                        .preview-main {
+                            position: absolute;
+                            top: 60mm;
+                            left: 60mm;
+                            right: 10mm;
+                            bottom: 10mm;
+                        }
+                        .preview-main h2 {
+                            font-size: 16px;
+                            font-weight: bold;
+                            margin-top: 10px;
+                            margin-bottom: 5px;
+                        }
+                        .preview-main p {
+                            font-size: 12px;
+                            color: #333;
+                            margin: 0;
+                        }
+                        .decorative-line {
+                            position: absolute;
+                            top: 50mm;
+                            left: 0;
+                            width: 100%;
+                            height: 2mm;
+                            background: #333;
+                        }
+                        @media (max-width: 768px) {
+                            .preview-content {
+                                width: 100%;
+                            }
+                            .preview-header {
+                                height: 40mm;
+                            }
+                            .preview-header h1 {
+                                font-size: 18px;
+                                top: 10mm;
+                                left: 10mm;
+                            }
+                            .preview-sidebar {
+                                width: 100%;
+                                position: static;
+                                padding: 5mm;
+                            }
+                            .preview-main {
+                                position: static;
+                                padding: 5mm;
+                            }
+                            .decorative-line {
+                                display: none;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>${previewContent}</body>
+                </html>
+            `;
+            saveInputValues();
+        }
+
+        function generatePDF() {
+            console.log('Generating PDF...');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const extracted = extractFieldValues();
+            if (!extracted) return;
+
+            const { name, email, phone, address, otherFields } = extracted;
+
+            // Set font and add header
+            doc.setFont('helvetica');
+            doc.setFontSize(24);
+            doc.setTextColor(255, 255, 255);
+            doc.setFillColor(74, 144, 226); // #4A90E2
+            doc.rect(0, 0, 210, 50, 'F');
+            doc.text(name || 'Your Name', 20, 40);
+
+            // Add sidebar
+            doc.setFillColor(245, 245, 245); // #f5f5f5
+            doc.rect(0, 50, 50, 247, 'F');
+            doc.setFontSize(12);
+            doc.setTextColor(51, 51, 51); // #333
+            doc.text(`Email: ${email || 'your.email@example.com'}`, 10, 60);
+            doc.text(`Phone: ${phone || '(123) 456-7890'}`, 10, 70);
+            doc.text(`Address: ${address || '123 Main St, City'}`, 10, 80);
+
+            // Add decorative line
+            doc.setFillColor(51, 51, 51); // #333
+            doc.rect(0, 50, 210, 2, 'F');
+
+            // Add main content
+            doc.setFontSize(16);
+            doc.text(state.selectedDocument || 'Document', 60, 70);
+            let yPos = 80;
+            otherFields.forEach(({ field, value }) => {
+                doc.setFontSize(16);
+                doc.text(field, 60, yPos);
+                yPos += 10;
+                doc.setFontSize(12);
+                doc.text(value, 60, yPos);
+                yPos += 10;
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+            });
+
+            // Save the PDF
+            doc.save(`document_${state.selectedDocument || 'output'}.pdf`);
+            console.log('PDF generated and downloaded.');
+        }
+    </script>
+</body>
+</html>
