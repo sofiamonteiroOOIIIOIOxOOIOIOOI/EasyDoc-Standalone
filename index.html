@@ -3,103 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyDoc 2.0 - Create Documents Easily</title>
-    <!-- Include jsPDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onload="console.log('jsPDF loaded successfully')" onerror="console.error('jsPDF failed to load')"></script>
-    <!-- Include PDF.js for rendering PDF in preview -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js" onload="console.log('PDF.js loaded successfully')" onerror="console.error('PDF.js failed to load')"></script>
+    <title>EasyDoc - Create Documents Easily</title>
+    <!-- Load jsPDF for PDF download -->
+    <script src="libs/jspdf.umd.min.js" defer></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Helvetica, Arial, sans-serif; background: #f4f4f4; color: #333; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
-        .container { display: flex; flex-direction: column; flex: 1; width: 100%; max-width: 1200px; margin: 0 auto; padding: 10px; }
-        .sidebar { background: #fff; padding: 15px; border-bottom: 1px solid #ddd; width: 100%; }
-        .sidebar h2 { font-size: 1.5rem; margin-bottom: 10px; }
-        .document-types { display: flex; flex-wrap: wrap; gap: 10px; }
-        .document-type-btn { padding: 8px 15px; background: #e0e0e0; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background 0.3s; flex: 1 1 100px; text-align: center; }
-        .document-type-btn:hover { background: #d0d0d0; }
-        .document-type-btn.active { background: #4A90E2; color: white; }
-        .main-content { flex: 1; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
-        .template-section { display: none; }
-        .template-section h2 { font-size: 1.25rem; margin-bottom: 10px; }
-        .template-options { display: flex; flex-wrap: wrap; gap: 10px; }
-        .template-preview { width: 80px; height: 80px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 5px; transition: background 0.3s; flex: 1 1 80px; }
-        .template-preview:hover { background: #d0d0d0; }
-        .template-preview.active { background: #4A90E2; color: white; }
-        .template-preview p { margin: 0; text-align: center; font-size: 0.9rem; }
-        .action-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
-        .action-buttons button { padding: 8px 15px; background: #4A90E2; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; flex: 1 1 100px; text-align: center; }
-        .action-buttons button:hover { background: #357ABD; }
-        .action-buttons .save-btn { background: #28A745; }
-        .action-buttons .save-btn:hover { background: #218838; }
-        .action-buttons .load-btn { background: #FFC107; color: #333; }
-        .action-buttons .load-btn:hover { background: #E0A800; }
-        .action-buttons .clear-btn { background: #E94B3C; }
-        .action-buttons .clear-btn:hover { background: #D43A2A; }
-        .hidden-file-input { display: none; }
-        .input-section h2 { font-size: 1.25rem; margin-bottom: 10px; }
-        .input-field { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
-        .add-btn { padding: 8px 15px; background: #4A90E2; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
-        .add-btn:hover { background: #357ABD; }
-        .feature-list { display: none; position: absolute; background: white; border: 1px solid #ddd; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10; max-height: 200px; overflow-y: auto; }
-        .feature-list div { padding: 8px; cursor: pointer; transition: background 0.3s; }
-        .feature-list div:hover { background: #f0f0f0; }
-        .preview-section { flex: 1; background: white; border: 1px solid #ddd; border-radius: 5px; overflow: auto; }
-        .preview-iframe { width: 100%; height: 100%; border: none; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; }
-        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); width: 90%; max-width: 300px; text-align: center; }
-        .modal p { margin: 0 0 20px; font-size: 1rem; }
-        .modal-buttons { display: flex; justify-content: center; gap: 10px; }
-        .modal-buttons button { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
-        .modal-buttons .confirm-btn { background: #28A745; color: white; }
-        .modal-buttons .confirm-btn:hover { background: #218838; }
-        .modal-buttons .cancel-btn { background: #E94B3C; color: white; }
-        .modal-buttons .cancel-btn:hover { background: #D43A2A; }
-        @media (min-width: 768px) {
-            .container { flex-direction: row; padding: 20px; }
-            .sidebar { width: 250px; border-bottom: none; border-right: 1px solid #ddd; }
-            .document-types { flex-direction: column; }
-            .document-type-btn { flex: none; width: 100%; text-align: left; }
-            .main-content { padding: 20px; }
-            .template-preview { width: 100px; height: 100px; }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+            color: #333;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 250px;
+            background: #fff;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+        .document-type-btn {
+            display: block;
+            padding: 10px;
+            margin: 5px 0;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.3s;
+        }
+        .document-type-btn:hover {
+            background: #d0d0d0;
+        }
+        .document-type-btn.active {
+            background: #4A90E2;
+            color: white;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .template-section {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .template-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .template-preview {
+            width: 100px;
+            height: 100px;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .template-preview:hover {
+            background: #d0d0d0;
+        }
+        .template-preview.active {
+            background: #4A90E2;
+            color: white;
+        }
+        .template-preview p {
+            margin: 0;
+            text-align: center;
+            font-size: 12px;
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        .input-section h2 {
+            margin-top: 0;
+        }
+        .input-field {
+            display: block;
+            width: 100%;
+            max-width: 500px;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .add-btn {
+            padding: 10px 20px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .add-btn:hover {
+            background: #357ABD;
+        }
+        .feature-list {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+        .feature-list div {
+            padding: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .feature-list div:hover {
+            background: #f0f0f0;
+        }
+        .preview-section {
+            flex: 1;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: auto;
+            text-align: center;
+            display: none; /* Hidden by default since preview is temporary */
+        }
+        .preview-image {
+            max-width: 595px;
+            max-height: 500px;
+            width: auto;
+            height: auto;
+        }
+        @media (max-width: 768px) {
+            .preview-image { max-height: 300px; }
+            .sidebar { width: 200px; }
+            .template-preview { width: 80px; height: 80px; }
+            .template-preview p { font-size: 10px; }
+        }
+        .action-buttons {
+            margin: 10px 0;
+        }
+        .action-buttons button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .action-buttons button:hover {
+            background: #357ABD;
+        }
+        .action-buttons button:disabled {
+            background: #a0a0a0;
+            cursor: not-allowed;
+        }
+        .action-buttons button.clear-btn {
+            background: #E94B3C;
+        }
+        .action-buttons button.clear-btn:hover {
+            background: #D43A2A;
+        }
+        .action-buttons button.save-btn {
+            background: #28A745;
+        }
+        .action-buttons button.save-btn:hover {
+            background: #218838;
+        }
+        .action-buttons button.load-btn {
+            background: #FFC107;
+            color: #333;
+        }
+        .action-buttons button.load-btn:hover {
+            background: #E0A800;
+        }
+        .hidden-file-input {
+            display: none;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: auto;
+            text-align: center;
+        }
+        .modal img {
+            max-width: 100%;
+            max-height: 500px;
+        }
+        .modal .close-btn {
+            margin-top: 10px;
+            padding: 8px 15px;
+            background: #E94B3C;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .modal .close-btn:hover {
+            background: #D43A2A;
+        }
+        .info-message {
+            display: block;
+            color: #4A90E2;
+            padding: 10px;
+            border: 1px solid #4A90E2;
+            border-radius: 5px;
+            background: #e6f0fa;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="sidebar">
-            <h2>Document Type</h2>
-            <div class="document-types">
-                <button class="document-type-btn" onclick="selectDocument('CV')">CV</button>
-                <button class="document-type-btn" onclick="selectDocument('Portfolio')">Portfolio</button>
-                <button class="document-type-btn" onclick="selectDocument('Contract')">Contract</button>
-                <button class="document-type-btn" onclick="selectDocument('Receipt')">Receipt</button>
-                <button class="document-type-btn" onclick="selectDocument('MindMap')">Mind Map</button>
-            </div>
+    <div class="sidebar">
+        <h2>Document Type</h2>
+        <button class="document-type-btn" onclick="selectDocument('CV')">CV</button>
+        <button class="document-type-btn" onclick="selectDocument('Portfolio')">Portfolio</button>
+        <button class="document-type-btn" onclick="selectDocument('Contract')">Contract</button>
+        <button class="document-type-btn" onclick="selectDocument('Receipt')">Receipt</button>
+        <button class="document-type-btn" onclick="selectDocument('MindMap')">Mind Map</button>
+    </div>
+    <div class="main-content">
+        <div class="info-message" id="noPdfInfo">
+            <p>Note: Previews are shown temporarily as images when requested. Download as PDF or save your progress.</p>
         </div>
-        <div class="main-content">
-            <div class="template-section" id="templateSection">
-                <h2>Select a Template</h2>
-                <div class="template-options" id="templateOptions"></div>
-            </div>
-            <div class="action-buttons">
-                <button onclick="updatePreview()">Preview</button>
-                <button onclick="generatePDF()">Generate PDF</button>
-                <button class="save-btn" onclick="saveToFile()">Save to File</button>
-                <button class="load-btn" onclick="showLoadWarning()">Load from File</button>
-                <input type="file" id="fileInput" class="hidden-file-input" accept=".json" onchange="loadFromFile(event)">
-                <button class="clear-btn" onclick="showClearConfirmation()">Clear Saved Data</button>
-            </div>
-            <div class="input-section" id="inputSection">
-                <h2>Fill the Details</h2>
-                <p>Please select a document type and template.</p>
-            </div>
-            <div class="preview-section">
-                <iframe class="preview-iframe" id="pdfPreview"></iframe>
-            </div>
+        <div class="template-section" id="templateSection">
+            <h2>Select a Template</h2>
+            <div class="template-options" id="templateOptions"></div>
+        </div>
+        <div class="action-buttons">
+            <button onclick="updatePreview()">Preview</button>
+            <button id="downloadBtn" onclick="downloadPDF()" disabled>Download PDF</button>
+            <button class="save-btn" onclick="saveToFile()">Save to File</button>
+            <button class="load-btn" onclick="showLoadWarning()">Load from File</button>
+            <input type="file" id="fileInput" class="hidden-file-input" accept=".json" onchange="loadFromFile(event)">
+            <button class="clear-btn" onclick="showClearConfirmation()">Clear Saved Data</button>
+        </div>
+        <div class="input-section" id="inputSection">
+            <h2>Fill the Details</h2>
+            <p>Please select a document type and template.</p>
+        </div>
+        <div class="preview-section" id="previewSection">
+            <!-- Hidden by default, used only for download -->
         </div>
     </div>
 
-    <!-- Clear Confirmation Modal -->
+    <!-- Modal for Temporary Preview -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal">
+            <img id="tempPreviewImage" class="preview-image" src="" alt="Temporary Preview">
+            <button class="close-btn" onclick="hidePreviewModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Modals -->
     <div class="modal-overlay" id="clearModal">
         <div class="modal">
             <p>Are you sure you want to clear all saved data? This will reset the form.</p>
@@ -109,19 +288,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Save Data Modal -->
-    <div class="modal-overlay" id="saveModal">
-        <div class="modal">
-            <p>Copy the following JSON to save your data:</p>
-            <textarea id="saveText" rows="10" cols="40" readonly></textarea>
-            <div class="modal-buttons">
-                <button class="cancel-btn" onclick="hideSaveModal()">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Load Warning Modal -->
     <div class="modal-overlay" id="loadModal">
         <div class="modal">
             <p>Loading a file will overwrite your current progress. Please save your work first if needed.</p>
@@ -133,118 +299,197 @@
     </div>
 
     <script>
-        let state = { selectedDocument: '', selectedTemplate: '', additionalFields: [], inputValues: {} };
-        console.log('State initialized:', state);
-
-        const documentFields = {
-            CV: { template1: ['Name', 'Email', 'Phone', 'Address', 'About Me', 'Education', 'Experience'], template2: ['Name', 'Email', 'Phone', 'Address', 'Summary', 'Education', 'Work History'], template3: ['Name', 'Email', 'Phone', 'Address', 'Profile', 'Education', 'Projects'] },
-            Portfolio: { template1: ['Introduction', 'Projects', 'Skills', 'Contact Info'], template2: ['About Me', 'Work Samples', 'Achievements', 'Links'], template3: ['Overview', 'Portfolio Items', 'Testimonials', 'Social Links'] },
-            Contract: { template1: ['Parties Involved', 'Terms', 'Duration', 'Signatures'], template2: ['Agreement Details', 'Conditions', 'Payment', 'Signatures'], template3: ['Contract Scope', 'Obligations', 'Timeline', 'Signatures'] },
-            Receipt: { template1: ['Seller Info', 'Buyer Info', 'Items', 'Total Amount'], template2: ['Transaction Date', 'Items Purchased', 'Price', 'Payment Method'], template3: ['Receipt Number', 'Items', 'Amount Paid', 'Date'] },
-            MindMap: { template1: ['Central Idea', 'Main Branches', 'Sub-Branches', 'Notes'], template2: ['Core Concept', 'Categories', 'Details', 'Connections'], template3: ['Main Topic', 'Ideas', 'Sub-Ideas', 'Summary'] }
+        // --- State Management ---
+        let state = {
+            selectedDocument: '',
+            selectedTemplate: '',
+            additionalFields: [],
+            inputValues: {}
         };
 
-        const templates = { CV: ['template1', 'template2', 'template3'], Portfolio: ['template1', 'template2', 'template3'], Contract: ['template1', 'template2', 'template3'], Receipt: ['template1', 'template2', 'template3'], MindMap: ['template1', 'template2', 'template3'] };
+        const documentFields = {
+            CV: {
+                template1: ['Name', 'Email', 'Phone', 'Address', 'About Me', 'Education', 'Experience'],
+                template2: ['Name', 'Email', 'Phone', 'Address', 'Summary', 'Education', 'Work History'],
+                template3: ['Name', 'Email', 'Phone', 'Address', 'Profile', 'Education', 'Projects']
+            },
+            Portfolio: {
+                template1: ['Introduction', 'Projects', 'Skills', 'Contact Info'],
+                template2: ['About Me', 'Work Samples', 'Achievements', 'Links'],
+                template3: ['Overview', 'Portfolio Items', 'Testimonials', 'Social Links']
+            },
+            Contract: {
+                template1: ['Parties Involved', 'Terms', 'Duration', 'Signatures'],
+                template2: ['Agreement Details', 'Conditions', 'Payment', 'Signatures'],
+                template3: ['Contract Scope', 'Obligations', 'Timeline', 'Signatures']
+            },
+            Receipt: {
+                template1: ['Seller Info', 'Buyer Info', 'Items', 'Total Amount'],
+                template2: ['Transaction Date', 'Items Purchased', 'Price', 'Payment Method'],
+                template3: ['Receipt Number', 'Items', 'Amount Paid', 'Date']
+            },
+            MindMap: {
+                template1: ['Central Idea', 'Main Branches', 'Sub-Branches', 'Notes'],
+                template2: ['Core Concept', 'Categories', 'Details', 'Connections'],
+                template3: ['Main Topic', 'Ideas', 'Sub-Ideas', 'Summary']
+            }
+        };
 
-        // Modal Functions
-        function showClearConfirmation() { console.log('Showing clear confirmation modal'); document.getElementById('clearModal').style.display = 'block'; }
-        function hideClearConfirmation() { console.log('Hiding clear confirmation modal'); document.getElementById('clearModal').style.display = 'none'; }
-        function confirmClear() { console.log('Confirming clear'); clearState(); hideClearConfirmation(); }
+        const templates = {
+            CV: ['template1', 'template2', 'template3'],
+            Portfolio: ['template1', 'template2', 'template3'],
+            Contract: ['template1', 'template2', 'template3'],
+            Receipt: ['template1', 'template2', 'template3'],
+            MindMap: ['template1', 'template2', 'template3']
+        };
 
-        function showSaveModal() { console.log('Showing save modal'); const jsonString = JSON.stringify(state, null, 2); document.getElementById('saveText').value = jsonString; document.getElementById('saveModal').style.display = 'block'; }
-        function hideSaveModal() { console.log('Hiding save modal'); document.getElementById('saveModal').style.display = 'none'; }
+        // --- Modal Functions ---
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
 
-        function showLoadWarning() { console.log('Showing load warning modal'); document.getElementById('loadModal').style.display = 'block'; }
-        function hideLoadWarning() { console.log('Hiding load warning modal'); document.getElementById('loadModal').style.display = 'none'; }
-        function confirmLoad() { console.log('Proceeding with load'); hideLoadWarning(); document.getElementById('fileInput').click(); }
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
 
-        // File Save/Load Functions
+        function showClearConfirmation() {
+            showModal('clearModal');
+        }
+
+        function hideClearConfirmation() {
+            hideModal('clearModal');
+        }
+
+        function confirmClear() {
+            clearState();
+            hideClearConfirmation();
+        }
+
+        function showLoadWarning() {
+            showModal('loadModal');
+        }
+
+        function hideLoadWarning() {
+            hideModal('loadModal');
+        }
+
+        function confirmLoad() {
+            hideLoadWarning();
+            document.getElementById('fileInput').click();
+        }
+
+        function showPreviewModal() {
+            showModal('previewModal');
+        }
+
+        function hidePreviewModal() {
+            hideModal('previewModal');
+            document.getElementById('tempPreviewImage').src = ''; // Clear the image
+        }
+
+        // --- File Save/Load Functions ---
         function saveToFile() {
-            console.log('Saving to file...');
             try {
                 const jsonString = JSON.stringify(state, null, 2);
-                console.log('State to save:', jsonString);
-                showSaveModal();
-                try {
-                    const blob = new Blob([jsonString], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `easyDocState-${state.selectedDocument || 'document'}.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    console.log('File download attempted.');
-                } catch (downloadError) {
-                    console.warn('Automatic download failed, using manual copy:', downloadError);
-                    alert('Automatic file download failed. Please copy the JSON from the modal.');
-                }
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `easyDocState-${state.selectedDocument || 'document'}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                console.log('Saved state to file:', state);
             } catch (error) {
-                console.error('Save failed:', error);
-                alert('Error preparing save data. Check console.');
+                console.error('Failed to save state to file:', error);
+                alert('Error saving to file. Please try again.');
             }
         }
 
-        function triggerFileInput() { console.log('Triggering file input...'); document.getElementById('fileInput').click(); }
-
-        function loadFromFile(event) {
-            console.log('Loading file...');
+        async function loadFromFile(event) {
             const file = event.target.files[0];
-            if (!file) { console.log('No file selected.'); return; }
-            if (!file.name.endsWith('.json')) { alert('Please upload a valid JSON file.'); return; }
+            if (!file) {
+                console.log('No file selected.');
+                return;
+            }
+            if (!file.name.endsWith('.json')) {
+                alert('Please upload a valid JSON file.');
+                return;
+            }
 
             const reader = new FileReader();
-            reader.onload = function(e) {
-                console.log('File read completed. Raw content:', e.target.result);
+            reader.onload = async function(e) {
                 try {
                     const loadedState = JSON.parse(e.target.result);
-                    console.log('Parsed state:', loadedState);
+                    console.log('Loaded state from file:', loadedState);
 
-                    // Apply loaded state (progress)
+                    // Validate and apply the state
                     state.selectedDocument = loadedState.selectedDocument || '';
                     state.selectedTemplate = loadedState.selectedTemplate || '';
                     state.additionalFields = Array.isArray(loadedState.additionalFields) ? loadedState.additionalFields : [];
                     state.inputValues = typeof loadedState.inputValues === 'object' && loadedState.inputValues !== null ? loadedState.inputValues : {};
 
                     console.log('Applied state:', state);
+
+                    // Reset the UI before applying the new state
                     resetUI();
 
-                    // Update UI to reflect loaded state
+                    // Update the UI: Select document and template, then update input fields
                     if (state.selectedDocument) {
-                        console.log('Selecting document:', state.selectedDocument);
-                        selectDocument(state.selectedDocument, false);
+                        selectDocument(state.selectedDocument);
                     }
                     if (state.selectedTemplate) {
-                        console.log('Selecting template:', state.selectedTemplate);
-                        selectTemplate(state.selectedTemplate, false);
+                        selectTemplate(state.selectedTemplate);
                     }
-
-                    // Force UI update
-                    updateInputFields();
-                    if (state.selectedDocument && state.selectedTemplate) {
-                        updatePreview();
-                    }
+                    updateInputFields(); // Ensure this is called to show the "Fill the Details" section
                 } catch (error) {
-                    console.error('Load failed:', error);
-                    alert('Error loading file. Check console or ensure valid JSON.');
+                    console.error('Failed to load state from file:', error);
+                    alert('Error loading file. Please ensure it’s a valid EasyDoc state file.');
                 }
             };
             reader.readAsText(file);
+            event.target.value = ''; // Reset input for reuse
         }
 
-        function clearState() { console.log('Clearing state...'); state = { selectedDocument: '', selectedTemplate: '', additionalFields: [], inputValues: {} }; console.log('State cleared:', state); resetUI(); updateInputFields(); }
+        function clearState() {
+            state = {
+                selectedDocument: '',
+                selectedTemplate: '',
+                additionalFields: [],
+                inputValues: {}
+            };
+            console.log('Cleared state:', state);
+            resetUI();
+            updateInputFields();
+        }
 
-        function resetUI() { console.log('Resetting UI...'); document.querySelectorAll('.document-type-btn').forEach(btn => btn.classList.remove('active')); document.querySelectorAll('.template-preview').forEach(preview => preview.classList.remove('active')); document.getElementById('templateSection').style.display = 'none'; document.getElementById('pdfPreview').srcdoc = ''; }
+        // --- UI Update Functions ---
+        function resetUI() {
+            document.querySelectorAll('.document-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.template-preview').forEach(preview => preview.classList.remove('active'));
+            document.getElementById('templateSection').style.display = 'none';
+            document.getElementById('downloadBtn').disabled = true;
+            hidePreviewModal();
+        }
 
-        function selectDocument(docType, updateFields = true) {
+        function selectDocument(docType) {
             console.log('Selecting document:', docType);
             state.selectedDocument = docType;
             state.selectedTemplate = '';
             state.additionalFields = [];
+
+            // Highlight the selected document button
             document.querySelectorAll('.document-type-btn').forEach(btn => btn.classList.remove('active'));
             const docButton = document.querySelector(`.document-type-btn[onclick="selectDocument('${docType}')"]`);
-            if (docButton) { docButton.classList.add('active'); console.log('Document button highlighted:', docType); }
+            if (docButton) {
+                docButton.classList.add('active');
+                console.log('Document button highlighted:', docType);
+            } else {
+                console.warn('Document button not found for:', docType);
+            }
+
+            // Show and populate the template section
             const templateSection = document.getElementById('templateSection');
             const templateOptions = document.getElementById('templateOptions');
             templateSection.style.display = 'block';
@@ -256,23 +501,32 @@
                 preview.onclick = () => selectTemplate(template);
                 templateOptions.appendChild(preview);
             });
-            if (updateFields) { updateInputFields(); }
+
+            updateInputFields();
         }
 
-        function selectTemplate(template, updateFields = true) {
+        function selectTemplate(template) {
             console.log('Selecting template:', template);
             state.selectedTemplate = template;
+
+            // Highlight the selected template
             document.querySelectorAll('.template-preview').forEach(preview => preview.classList.remove('active'));
             const templatePreview = document.querySelector(`.template-preview.${template}`);
-            if (templatePreview) { templatePreview.classList.add('active'); console.log('Template preview highlighted:', template); }
-            if (updateFields) { updateInputFields(); }
+            if (templatePreview) {
+                templatePreview.classList.add('active');
+                console.log('Template preview highlighted:', template);
+            } else {
+                console.warn('Template preview not found for:', template);
+            }
+
+            updateInputFields();
         }
 
         function updateInputFields() {
             console.log('Updating input fields...');
-            console.log('Current state:', state);
             const inputSection = document.getElementById('inputSection');
             inputSection.innerHTML = '<h2>Fill the Details</h2>';
+
             if (state.selectedDocument && state.selectedTemplate) {
                 const fields = documentFields[state.selectedDocument][state.selectedTemplate];
                 fields.forEach(field => {
@@ -283,10 +537,11 @@
                     input.placeholder = `${field}...`;
                     if (state.inputValues[input.id]) {
                         input.value = state.inputValues[input.id];
-                        console.log(`Restored field: ${field} with value: ${input.value}`);
+                        console.log(`Restored input field ${field}: ${input.value}`);
                     }
                     inputSection.appendChild(input);
                 });
+
                 state.additionalFields.forEach((field, index) => {
                     const input = document.createElement('input');
                     input.type = 'text';
@@ -295,14 +550,31 @@
                     input.placeholder = `${field}...`;
                     if (state.inputValues[input.id]) {
                         input.value = state.inputValues[input.id];
-                        console.log(`Restored additional field: ${field} with value: ${input.value}`);
+                        console.log(`Restored additional field ${field}-${index}: ${input.value}`);
                     }
                     inputSection.appendChild(input);
                 });
+
                 const buttonDiv = document.createElement('div');
                 buttonDiv.style.position = 'relative';
-                buttonDiv.innerHTML = `<button class="add-btn" onclick="toggleFeatureList()">Add New Feature</button><div class="feature-list" id="featureList"><div onclick="addFeature('Title')">Title</div><div onclick="addFeature('Text')">Text</div><div onclick="addFeature('Email')">Email</div><div onclick="addFeature('Number')">Number</div><div onclick="addFeature('Date')">Date</div><div onclick="addFeature('Address')">Address</div><div onclick="addFeature('Skills')">Skills</div><div onclick="addFeature('Experience')">Experience</div><div onclick="addFeature('Education')">Education</div><div onclick="addFeature('Certifications')">Certifications</div></div>`;
+                buttonDiv.innerHTML = `
+                    <button class="add-btn" onclick="toggleFeatureList()">Add New Feature</button>
+                    <div class="feature-list" id="featureList">
+                        <div onclick="addFeature('Title')">Title</div>
+                        <div onclick="addFeature('Text')">Text</div>
+                        <div onclick="addFeature('Email')">Email</div>
+                        <div onclick="addFeature('Number')">Number</div>
+                        <div onclick="addFeature('Date')">Date</div>
+                        <div onclick="addFeature('Address')">Address</div>
+                        <div onclick="addFeature('Skills')">Skills</div>
+                        <div onclick="addFeature('Experience')">Experience</div>
+                        <div onclick="addFeature('Education')">Education</div>
+                        <div onclick="addFeature('Certifications')">Certifications</div>
+                    </div>
+                `;
                 inputSection.appendChild(buttonDiv);
+
+                // Add click event listener for feature list (only once)
                 const featureList = document.getElementById('featureList');
                 if (!document.featureListListener) {
                     document.addEventListener('click', handleClickOutside);
@@ -320,16 +592,20 @@
             inputs.forEach(input => {
                 if (input.value) {
                     state.inputValues[input.id] = input.value;
-                    console.log(`Saved field: ${input.id} with value: ${input.value}`);
+                    console.log(`Saved input field ${input.id}: ${input.value}`);
                 }
             });
-            console.log('Updated input values:', state.inputValues);
+            console.log('Current inputValues:', state.inputValues);
         }
 
+        // --- Feature List Handling ---
         function toggleFeatureList() {
-            console.log('Toggling feature list...');
             const featureList = document.getElementById('featureList');
-            if (featureList) { featureList.style.display = featureList.style.display === 'block' ? 'none' : 'block'; }
+            if (featureList) {
+                featureList.style.display = featureList.style.display === 'block' ? 'none' : 'block';
+            } else {
+                console.warn('featureList not found when toggling.');
+            }
         }
 
         function addFeature(feature) {
@@ -348,124 +624,194 @@
             }
         }
 
+        // --- Preview and PDF Export ---
         function extractFieldValues() {
-            console.log('Extracting field values...');
-            if (!state.selectedDocument || !state.selectedTemplate) { alert('Please select a document type and template.'); return null; }
+            if (!state.selectedDocument || !state.selectedTemplate) {
+                alert('Please select a document type and template.');
+                return null;
+            }
+
             const fields = documentFields[state.selectedDocument][state.selectedTemplate];
             let name = '', email = '', phone = '', address = '';
             let otherFields = [];
+
             fields.forEach(field => {
                 const inputValue = document.getElementById(field.replace(/\s/g, '')).value;
                 if (field === 'Name') name = inputValue;
                 else if (field === 'Email') email = inputValue;
                 else if (field === 'Phone') phone = inputValue;
                 else if (field === 'Address') address = inputValue;
-                else { otherFields.push({ field, value: inputValue || `Enter your ${field.toLowerCase()}...` }); }
+                else {
+                    otherFields.push({ field, value: inputValue || `Enter your ${field.toLowerCase()}...` });
+                }
             });
+
             state.additionalFields.forEach((field, index) => {
                 const inputValue = document.getElementById(`additional-${field}-${index}`).value;
                 otherFields.push({ field, value: inputValue || `Enter your ${field.toLowerCase()}...` });
             });
-            console.log('Extracted values:', { name, email, phone, address, otherFields });
+
             return { name, email, phone, address, otherFields };
         }
 
-        function generatePDFContent(doc) {
+        async function updatePreview() {
+            if (!state.selectedDocument || !state.selectedTemplate) {
+                alert('Please select a document type and template.');
+                return;
+            }
+
             const extracted = extractFieldValues();
             if (!extracted) return;
 
             const { name, email, phone, address, otherFields } = extracted;
 
-            doc.setFont('helvetica');
-            doc.setFontSize(24);
-            doc.setTextColor(255, 255, 255);
-            doc.setFillColor(74, 144, 226);
-            doc.rect(0, 0, 210, 50, 'F');
-            doc.text(name || 'Your Name', 20, 40);
+            // Create a canvas to generate the temporary image
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
 
-            doc.setFillColor(245, 245, 245);
-            doc.rect(0, 50, 50, 247, 'F');
-            doc.setFontSize(12);
-            doc.setTextColor(51, 51, 51);
-            doc.text(`Email: ${email || 'your.email@example.com'}`, 10, 60);
-            doc.text(`Phone: ${phone || '(123) 456-7890'}`, 10, 70);
-            doc.text(`Address: ${address || '123 Main St, City'}`, 10, 80);
+            // Set canvas size (A4 at 72 DPI: 595x842)
+            canvas.width = 595;
+            canvas.height = 842;
 
-            doc.setFillColor(51, 51, 51);
-            doc.rect(0, 50, 210, 2, 'F');
+            // Draw the base layout (simplified, no pre-rendered images)
+            context.fillStyle = '#4A90E2'; // Header background
+            context.fillRect(0, 0, canvas.width, 150);
+            context.fillStyle = '#333'; // Decorative line
+            context.fillRect(0, 150, canvas.width, 6);
+            context.fillStyle = '#f5f5f5'; // Sidebar background
+            context.fillRect(0, 156, 150, canvas.height - 156);
 
-            doc.setFontSize(16);
-            doc.text(state.selectedDocument || 'Document', 60, 70);
-            let yPos = 80;
+            // Overlay text (coordinates are approximate)
+            context.fillStyle = 'white';
+            context.font = 'bold 24px Helvetica';
+            context.fillText(name || 'Your Name', 20, 100); // Header name
+
+            context.fillStyle = '#333';
+            context.font = '12px Helvetica';
+            context.fillText(`Email: ${email || 'your.email@example.com'}`, 10, 180); // Sidebar
+            context.fillText(`Phone: ${phone || '(123) 456-7890'}`, 10, 200);
+            context.fillText(`Address: ${address || '123 Main St, City'}`, 10, 220);
+
+            // Main content
+            let y = 200;
+            context.font = 'bold 16px Helvetica';
+            context.fillText(state.selectedDocument, 160, 180);
+            context.font = '12px Helvetica';
             otherFields.forEach(({ field, value }) => {
-                doc.setFontSize(16);
-                doc.text(field, 60, yPos);
-                yPos += 10;
-                doc.setFontSize(12);
-                doc.text(value, 60, yPos);
-                yPos += 10;
-                if (yPos > 270) { doc.addPage(); yPos = 20; }
+                context.font = 'bold 16px Helvetica';
+                context.fillText(field, 160, y);
+                y += 20;
+                context.font = '12px Helvetica';
+                wrapText(context, value, 160, y, 400, 20);
+                y += 20 * Math.ceil(value.length / 40); // Rough line wrapping
             });
-        }
 
-        function updatePreview() {
-            console.log('Updating preview...');
-            if (typeof window.jspdf === 'undefined') { console.error('jsPDF is not loaded.'); alert('Preview generation failed. jsPDF library is not available.'); return; }
-            if (typeof pdfjsLib === 'undefined') { console.error('PDF.js is not loaded.'); alert('Preview generation failed. PDF.js library is not available.'); return; }
+            // Display in modal
+            const tempPreviewImage = document.getElementById('tempPreviewImage');
+            tempPreviewImage.src = canvas.toDataURL('image/png');
+            showPreviewModal();
 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            // Auto-dismiss after 5 seconds
+            setTimeout(hidePreviewModal, 5000);
 
-            // Generate the PDF content (same as generatePDF but without saving)
-            generatePDFContent(doc);
-
-            // Convert PDF to data URL
-            const pdfData = doc.output('arraybuffer');
-            const pdfDataUri = 'data:application/pdf;base64,' + btoa(String.fromCharCode(...new Uint8Array(pdfData)));
-
-            // Use PDF.js to render the PDF in the iframe
-            const iframe = document.getElementById('pdfPreview');
-            iframe.srcdoc = `
-                <html>
-                <head>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
-                    <style>
-                        body { margin: 0; padding: 0; }
-                        canvas { width: 100%; height: auto; }
-                    </style>
-                </head>
-                <body>
-                    <canvas id="pdfCanvas"></canvas>
-                    <script>
-                        pdfjsLib.getDocument('${pdfDataUri}').promise.then(pdf => {
-                            pdf.getPage(1).then(page => {
-                                const viewport = page.getViewport({ scale: 1.0 });
-                                const canvas = document.getElementById('pdfCanvas');
-                                const context = canvas.getContext('2d');
-                                canvas.height = viewport.height;
-                                canvas.width = viewport.width;
-                                page.render({
-                                    canvasContext: context,
-                                    viewport: viewport
-                                });
-                            });
-                        }).catch(err => console.error('PDF.js error:', err));
-                    </script>
-                </body>
-                </html>
-            `;
+            // Enable download button for this session
+            document.getElementById('downloadBtn').disabled = false;
             saveInputValues();
         }
 
-        function generatePDF() {
-            console.log('Generating PDF...');
-            if (typeof window.jspdf === 'undefined') { console.error('jsPDF is not loaded.'); alert('PDF generation failed. jsPDF library is not available.'); return; }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, y);
+                    line = words[n] + ' ';
+                    y += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, y);
+        }
 
-            generatePDFContent(doc);
-            doc.save(`document_${state.selectedDocument || 'output'}.pdf`);
-            console.log('PDF generated and downloaded.');
+        function generatePDFContent(doc) {
+            const extracted = extractFieldValues();
+            if (!extracted) return false;
+
+            const { name, email, phone, address, otherFields } = extracted;
+
+            // Header background (blue rectangle)
+            doc.setFillColor(74, 144, 226); // #4A90E2
+            doc.rect(0, 0, 210, 50, 'F');
+
+            // Decorative line (black rectangle)
+            doc.setFillColor(51, 51, 51); // #333
+            doc.rect(0, 50, 210, 2, 'F');
+
+            // Sidebar background (light gray rectangle)
+            doc.setFillColor(245, 245, 245); // #f5f5f5
+            doc.rect(0, 50, 50, 247, 'F');
+
+            // Name in header
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(24);
+            doc.setTextColor(255, 255, 255); // White
+            doc.text(name || 'Your Name', 20, 40);
+
+            // Sidebar content
+            doc.setFontSize(12);
+            doc.setTextColor(51, 51, 51); // #333
+            doc.setFont("helvetica", "normal");
+            doc.text(`Email: ${email || 'your.email@example.com'}`, 10, 70);
+            doc.text(`Phone: ${phone || '(123) 456-7890'}`, 10, 80);
+            doc.text(`Address: ${address || '123 Main St, City'}`, 10, 90);
+
+            // Main content
+            let y = 70;
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text(state.selectedDocument, 60, y);
+            y += 10;
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            otherFields.forEach(({ field, value }) => {
+                doc.setFont("helvetica", "bold");
+                doc.text(field, 60, y);
+                y += 5;
+                doc.setFont("helvetica", "normal");
+                const lines = doc.splitTextToSize(value, 130);
+                doc.text(lines, 60, y);
+                y += lines.length * 5 + 5;
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+            });
+
+            return true;
+        }
+
+        function downloadPDF() {
+            if (!window.jspdf) {
+                alert('jsPDF library is missing. Please ensure libs/jspdf.umd.min.js is available.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            const success = generatePDFContent(doc);
+            if (!success) return;
+
+            doc.save(`${state.selectedDocument}_${state.selectedTemplate}.pdf`);
         }
     </script>
 </body>
