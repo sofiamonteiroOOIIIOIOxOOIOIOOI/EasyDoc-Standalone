@@ -117,6 +117,8 @@
     <button onclick="loadFile()">Load File into Content</button>
     <input type="file" id="fileInput" style="display:none;" accept=".txt" onchange="handleFileSelect(event)">
 
+    <button onclick="updatePreview()">Refresh Preview</button>
+
     <div class="shape" id="preview-shape">
         <label>Preview:</label>
         <pre id="preview">Preview will appear here...</pre>
@@ -126,6 +128,7 @@
     <input type="text" id="filename" value="output.pdf">
 
     <button onclick="generatePDF()">Generate PDF</button>
+    <button onclick="saveContent()">Save Content</button>
     <p id="status"></p>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -167,6 +170,19 @@
             document.getElementById('status').textContent = `PDF generated and downloaded as ${filename}`;
         }
 
+        function saveContent() {
+            const header = document.getElementById('header').value;
+            const content = document.getElementById('content').value;
+            const footer = document.getElementById('footer').value;
+            const fullContent = `Header:\n${header}\n\nContent:\n${content}\n\nFooter:\n${footer}`;
+            const blob = new Blob([fullContent], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'easydoc_save.txt';
+            link.click();
+            document.getElementById('status').textContent = 'Content saved as easydoc_save.txt';
+        }
+
         function loadFile() {
             document.getElementById('fileInput').click();
         }
@@ -176,7 +192,23 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('content').value = e.target.result;
+                    const content = e.target.result;
+                    // Parse the saved content (assuming Header, Content, Footer format)
+                    const lines = content.split('\n');
+                    let header = '', currentSection = 'content', currentContent = '';
+                    lines.forEach(line => {
+                        if (line === 'Header:') currentSection = 'header';
+                        else if (line === 'Content:') currentSection = 'content';
+                        else if (line === 'Footer:') currentSection = 'footer';
+                        else {
+                            if (currentSection === 'header' && line.trim() !== '') header += line + '\n';
+                            else if (currentSection === 'content') currentContent += line + '\n';
+                            else if (currentSection === 'footer') currentContent += line + '\n';
+                        }
+                    });
+                    document.getElementById('header').value = header.trim();
+                    document.getElementById('content').value = currentContent.trim();
+                    document.getElementById('footer').value = '';
                     updatePreview();
                 };
                 reader.readAsText(file);
