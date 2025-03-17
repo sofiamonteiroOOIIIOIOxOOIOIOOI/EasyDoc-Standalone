@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyDoc 2.0 - Shape-Based Editor</title>
+    <title>EasyDoc 2.0 - Custom Document Editor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,17 +18,18 @@
             font-size: 1.5em;
         }
 
-        .shape {
-            background-color: #d3d3d3; /* Gray background for shapes */
+        .box {
+            background-color: #d3d3d3; /* Default gray background */
             padding: 10px;
             margin: 10px 0;
             border-radius: 5px;
             width: 100%;
             box-sizing: border-box;
             position: relative;
+            transition: all 0.3s ease; /* Smooth transition for customizations */
         }
 
-        .shape-buttons {
+        .box-buttons {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -36,7 +37,7 @@
             gap: 5px;
         }
 
-        .shape-buttons button {
+        .box-buttons button {
             padding: 5px 10px;
             font-size: 0.8em;
             width: auto;
@@ -49,6 +50,7 @@
             border: none;
             background: transparent;
             font-size: 1em;
+            transition: all 0.3s ease; /* Smooth transition for size/font changes */
         }
 
         #preview-shape pre {
@@ -84,22 +86,34 @@
             word-wrap: break-word;
         }
 
+        .customize-panel {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .customize-panel.active {
+            display: block;
+        }
+
         /* Mobile Responsiveness */
         @media (max-width: 600px) {
             h1 {
                 font-size: 1.2em;
             }
-            .shape {
+            .box {
                 padding: 5px;
                 margin: 5px 0;
             }
-            .shape-buttons {
+            .box-buttons {
                 top: 5px;
                 right: 5px;
                 flex-direction: column;
                 gap: 2px;
             }
-            .shape-buttons button {
+            .box-buttons button {
                 padding: 3px 6px;
                 font-size: 0.7em;
             }
@@ -121,68 +135,67 @@
     </style>
 </head>
 <body>
-    <h1>EasyDoc 2.0 - Build Your Document</h1>
+    <h1>EasyDoc 2.0 - Custom Document Editor</h1>
 
-    <!-- 1. Select Template -->
-    <label for="template">Select Template:</label>
-    <select id="template" onchange="updatePreview()">
-        <option value="Header-Content-Footer">Header-Content-Footer</option>
-        <option value="Title-Content">Title-Content</option>
+    <!-- 1. Document Switcher -->
+    <label for="document">Select Document:</label>
+    <select id="document" onchange="switchDocument()">
+        <option value="portfolio">Portfolio</option>
+        <option value="curriculum">Curriculum</option>
+        <option value="new">New Document...</option>
     </select>
 
     <!-- 2. Text Boxes -->
-    <div id="sections">
-        <div class="shape" id="header-shape">
-            <label>Header/Title:</label>
-            <textarea id="header">Sample Header\nEdit me!</textarea>
-            <div class="shape-buttons">
-                <button onclick="moveSection('header', 'up')" id="header-up">Move Up</button>
-                <button onclick="moveSection('header', 'down')" id="header-down">Move Down</button>
-            </div>
-        </div>
-
-        <div class="shape" id="content-shape">
-            <label>Content:</label>
-            <textarea id="content">This is the main content.\nWrite your document here.</textarea>
-            <div class="shape-buttons">
-                <button onclick="moveSection('content', 'up')" id="content-up">Move Up</button>
-                <button onclick="moveSection('content', 'down')" id="content-down">Move Down</button>
-            </div>
-        </div>
-
-        <div class="shape" id="footer-shape">
-            <label>Footer:</label>
-            <textarea id="footer">Footer - Add notes or credits.</textarea>
-            <div class="shape-buttons">
-                <button onclick="moveSection('footer', 'up')" id="footer-up">Move Up</button>
-                <button onclick="moveSection('footer', 'down')" id="footer-down">Move Down</button>
+    <div id="boxes">
+        <div class="box" id="box-0">
+            <label>Text Box 1:</label>
+            <textarea id="textarea-0">Start typing here...</textarea>
+            <div class="box-buttons">
+                <button onclick="customizeBox(0)">Customize</button>
+                <button onclick="moveBox(0, 'up')" id="box-0-up">Move Up</button>
+                <button onclick="moveBox(0, 'down')" id="box-0-down">Move Down</button>
             </div>
         </div>
     </div>
 
     <!-- 3. Add Section -->
-    <button onclick="addSection()">Add Section</button>
+    <button onclick="addBox()">Add Box</button>
 
-    <!-- 4. Refresh Preview -->
+    <!-- 4. Customize Panel (Hidden by default) -->
+    <div id="customize-panel" class="customize-panel">
+        <label for="box-color">Background Color:</label>
+        <input type="color" id="box-color" value="#d3d3d3">
+        <label for="font-size">Font Size (px):</label>
+        <input type="number" id="font-size" value="16" min="10" max="30">
+        <label for="font-family">Font Family:</label>
+        <select id="font-family">
+            <option value="Arial">Arial</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier New">Courier New</option>
+        </select>
+        <button onclick="applyCustomization()">Apply</button>
+    </div>
+
+    <!-- 5. Refresh Preview -->
     <button onclick="updatePreview()">Refresh Preview</button>
 
-    <!-- 5. Preview -->
+    <!-- 6. Preview -->
     <div class="shape" id="preview-shape">
         <label>Preview:</label>
         <pre id="preview">Preview will appear here...</pre>
     </div>
 
-    <!-- 6. Save Content -->
+    <!-- 7. Save Content -->
     <button onclick="saveContent()">Save Content</button>
 
-    <!-- 7. Load File -->
+    <!-- 8. Load File -->
     <button onclick="loadFile()">Load File into Content</button>
     <input type="file" id="fileInput" style="display:none;" accept=".txt" onchange="handleFileSelect(event)">
 
-    <!-- 8. Generate PDF -->
+    <!-- 9. Generate PDF -->
     <button onclick="generatePDF()">Generate PDF</button>
 
-    <!-- 9. Output File Name -->
+    <!-- 10. Output File Name -->
     <label for="filename">Output Filename:</label>
     <input type="text" id="filename" value="output.pdf">
 
@@ -190,161 +203,162 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
-        let sectionOrder = ['header', 'content', 'footer']; // Default order
-        let sectionContent = {}; // Initialize as an empty object to be populated dynamically
+        let documents = {
+            'portfolio': {
+                boxes: [{ id: 0, content: 'Start typing here...', color: '#d3d3d3', fontSize: 16, fontFamily: 'Arial' }],
+                order: [0]
+            },
+            'curriculum': {
+                boxes: [{ id: 0, content: 'Start typing here...', color: '#d3d3d3', fontSize: 16, fontFamily: 'Arial' }],
+                order: [0]
+            }
+        };
+        let currentDocument = 'portfolio';
+        let currentBoxId = 1; // For generating unique box IDs
 
-        // Function to update sectionContent with current textarea references
-        function updateSectionReferences() {
-            sectionContent = {
-                'header': document.getElementById('header'),
-                'content': document.getElementById('content'),
-                'footer': document.getElementById('footer')
-            };
-            // Add dynamically created sections
-            sectionOrder.forEach(section => {
-                if (!['header', 'content', 'footer'].includes(section)) {
-                    const textarea = document.getElementById(section);
-                    if (textarea) sectionContent[section] = textarea;
+        function switchDocument() {
+            const select = document.getElementById('document');
+            const value = select.value;
+            if (value === 'new') {
+                const newName = prompt('Enter a name for the new document:');
+                if (newName && !documents[newName]) {
+                    documents[newName] = {
+                        boxes: [{ id: 0, content: 'Start typing here...', color: '#d3d3d3', fontSize: 16, fontFamily: 'Arial' }],
+                        order: [0]
+                    };
+                    select.add(new Option(newName, newName));
+                    select.value = newName;
+                } else {
+                    select.value = currentDocument;
+                    document.getElementById('status').textContent = 'Document name already exists or invalid!';
+                    return;
                 }
-            });
-        }
-
-        function updateSectionOrder() {
-            const sectionsDiv = document.getElementById('sections');
-            const sectionElements = {};
-            sectionOrder.forEach(section => {
-                sectionElements[section] = document.getElementById(`${section}-shape`);
-            });
-
-            // Remove all sections and re-append in the new order
-            sectionsDiv.innerHTML = '';
-            sectionOrder.forEach(section => {
-                sectionsDiv.appendChild(sectionElements[section]);
-            });
-
-            // Update button states (disable Move Up for first, Move Down for last)
-            sectionOrder.forEach((section, index) => {
-                document.getElementById(`${section}-up`).disabled = index === 0;
-                document.getElementById(`${section}-down`).disabled = index === sectionOrder.length - 1;
-            });
-
-            updateSectionReferences(); // Refresh sectionContent after reordering
+            }
+            currentDocument = select.value;
+            renderBoxes();
             updatePreview();
         }
 
-        function moveSection(section, direction) {
-            const index = sectionOrder.indexOf(section);
-            if (direction === 'up' && index > 0) {
-                [sectionOrder[index], sectionOrder[index - 1]] = [sectionOrder[index - 1], sectionOrder[index]];
-            } else if (direction === 'down' && index < sectionOrder.length - 1) {
-                [sectionOrder[index], sectionOrder[index + 1]] = [sectionOrder[index + 1], sectionOrder[index]];
-            }
-            updateSectionOrder();
+        function renderBoxes() {
+            const boxesDiv = document.getElementById('boxes');
+            boxesDiv.innerHTML = '';
+            const doc = documents[currentDocument];
+            doc.order.forEach((boxId, index) => {
+                const box = doc.boxes.find(b => b.id === boxId);
+                const textarea = document.createElement('textarea');
+                textarea.id = `textarea-${boxId}`;
+                textarea.value = box.content;
+
+                const boxDiv = document.createElement('div');
+                boxDiv.className = 'box';
+                boxDiv.id = `box-${boxId}`;
+                boxDiv.style.backgroundColor = box.color;
+                textarea.style.fontSize = `${box.fontSize}px`;
+                textarea.style.fontFamily = box.fontFamily;
+                boxDiv.innerHTML = `<label>Text Box ${boxId + 1}:</label>${textarea.outerHTML}<div class="box-buttons"><button onclick="customizeBox(${boxId})">Customize</button><button onclick="moveBox(${boxId}, 'up')" id="box-${boxId}-up">Move Up</button><button onclick="moveBox(${boxId}, 'down')" id="box-${boxId}-down">Move Down</button></div>`;
+
+                boxesDiv.appendChild(boxDiv);
+            });
+
+            // Update button states
+            doc.order.forEach((boxId, index) => {
+                document.getElementById(`box-${boxId}-up`).disabled = index === 0;
+                document.getElementById(`box-${boxId}-down`).disabled = index === doc.order.length - 1;
+            });
         }
 
-        function addSection() {
-            const sectionName = prompt('Enter a name for the new section (e.g., Section1):');
-            if (sectionName && !sectionOrder.includes(sectionName.toLowerCase())) {
-                const newSectionId = sectionName.toLowerCase();
-                const newTextarea = document.createElement('textarea');
-                newTextarea.id = newSectionId;
-                newTextarea.value = `New ${sectionName} content here...`;
-
-                const newShape = document.createElement('div');
-                newShape.className = 'shape';
-                newShape.id = `${newSectionId}-shape`;
-                newShape.innerHTML = `<label>${sectionName}:</label>${newTextarea.outerHTML}<div class="shape-buttons"><button onclick="moveSection('${newSectionId}', 'up')" id="${newSectionId}-up">Move Up</button><button onclick="moveSection('${newSectionId}', 'down')" id="${newSectionId}-down">Move Down</button></div>`;
-
-                sectionOrder.push(newSectionId);
-                document.getElementById('sections').appendChild(newShape);
-                updateSectionOrder();
-                document.getElementById('status').textContent = `Added new section: ${sectionName}`;
-            } else if (sectionOrder.includes(sectionName.toLowerCase())) {
-                document.getElementById('status').textContent = 'Section name already exists!';
-            } else {
-                document.getElementById('status').textContent = 'Section not added. Please enter a name.';
+        function moveBox(boxId, direction) {
+            const doc = documents[currentDocument];
+            const index = doc.order.indexOf(boxId);
+            if (direction === 'up' && index > 0) {
+                [doc.order[index], doc.order[index - 1]] = [doc.order[index - 1], doc.order[index]];
+            } else if (direction === 'down' && index < doc.order.length - 1) {
+                [doc.order[index], doc.order[index + 1]] = [doc.order[index + 1], doc.order[index]];
             }
+            renderBoxes();
+            updatePreview();
+        }
+
+        function addBox() {
+            const doc = documents[currentDocument];
+            const newBoxId = currentBoxId++;
+            const newBox = {
+                id: newBoxId,
+                content: 'Start typing here...',
+                color: doc.boxes[0].color,
+                fontSize: doc.boxes[0].fontSize,
+                fontFamily: doc.boxes[0].fontFamily
+            };
+            doc.boxes.push(newBox);
+            doc.order.push(newBoxId);
+            renderBoxes();
+            updatePreview();
+            document.getElementById('status').textContent = `Added new box: ${newBoxId + 1}`;
+        }
+
+        function customizeBox(boxId) {
+            const doc = documents[currentDocument];
+            const box = doc.boxes.find(b => b.id === boxId);
+            document.getElementById('box-color').value = box.color;
+            document.getElementById('font-size').value = box.fontSize;
+            document.getElementById('font-family').value = box.fontFamily;
+            document.getElementById('customize-panel').classList.add('active');
+            document.getElementById('customize-panel').dataset.boxId = boxId;
+        }
+
+        function applyCustomization() {
+            const boxId = document.getElementById('customize-panel').dataset.boxId;
+            const doc = documents[currentDocument];
+            const box = doc.boxes.find(b => b.id === boxId);
+            box.color = document.getElementById('box-color').value;
+            box.fontSize = parseInt(document.getElementById('font-size').value);
+            box.fontFamily = document.getElementById('font-family').value;
+            document.getElementById('customize-panel').classList.remove('active');
+            renderBoxes();
+            updatePreview();
         }
 
         function updatePreview() {
-            updateSectionReferences(); // Ensure sectionContent is up-to-date
-            const header = sectionContent['header'].value;
-            const content = sectionContent['content'].value;
-            const footer = sectionContent['footer'].value;
-            const template = document.getElementById('template').value;
-
-            const sections = {
-                'header': template === 'Title-Content' ? `Title:\n${header}` : `Header:\n${header}`,
-                'content': `Content:\n====\n${content}\n====`,
-                'footer': `Footer:\n${footer}`
-            };
-
-            // Include dynamic sections
-            for (const section in sectionContent) {
-                if (!['header', 'content', 'footer'].includes(section)) {
-                    sections[section] = `${section.charAt(0).toUpperCase() + section.slice(1)}:\n${sectionContent[section].value}`;
-                }
-            }
-
+            const doc = documents[currentDocument];
             let preview = '';
-            sectionOrder.forEach((section, index) => {
-                if (template === 'Title-Content' && section === 'footer') return; // Skip footer for Title-Content
+            doc.order.forEach((boxId, index) => {
+                const box = doc.boxes.find(b => b.id === boxId);
                 if (preview !== '') preview += '\n\n';
-                preview += sections[section];
+                preview += `${box.content}`;
             });
             document.getElementById('preview').textContent = preview;
         }
 
         function generatePDF() {
-            updateSectionReferences(); // Ensure sectionContent is up-to-date
-            const header = sectionContent['header'].value;
-            const content = sectionContent['content'].value;
-            const footer = sectionContent['footer'].value;
-            const template = document.getElementById('template').value;
+            const doc = documents[currentDocument];
             const filename = document.getElementById('filename').value || 'output.pdf';
-
-            const sections = {
-                'header': template === 'Title-Content' ? `Title:\n${header}` : `Header:\n${header}`,
-                'content': `Content:\n====\n${content}\n====`,
-                'footer': `Footer:\n${footer}`
-            };
-
-            // Include dynamic sections
-            for (const section in sectionContent) {
-                if (!['header', 'content', 'footer'].includes(section)) {
-                    sections[section] = `${section.charAt(0).toUpperCase() + section.slice(1)}:\n${sectionContent[section].value}`;
-                }
-            }
-
             let pdfContent = '';
-            sectionOrder.forEach((section, index) => {
-                if (template === 'Title-Content' && section === 'footer') return; // Skip footer for Title-Content
+            doc.order.forEach((boxId, index) => {
+                const box = doc.boxes.find(b => b.id === boxId);
                 if (pdfContent !== '') pdfContent += '\n\n';
-                pdfContent += sections[section];
+                pdfContent += `${box.content}`;
             });
 
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text(pdfContent, 10, 10);
-            doc.save(filename);
-
+            const pdf = new jsPDF();
+            pdf.text(pdfContent, 10, 10);
+            pdf.save(filename);
             document.getElementById('status').textContent = `PDF generated and downloaded as ${filename}`;
         }
 
         function saveContent() {
-            updateSectionReferences(); // Ensure sectionContent is up-to-date
-            const template = document.getElementById('template').value;
-            // Use distinct section markers and include template and order
-            let fullContent = `===TEMPLATE:${template}===\n===SECTION:ORDER===\n${sectionOrder.join(',')}\n`;
-            sectionOrder.forEach(section => {
-                fullContent += `\n===SECTION:${section.toUpperCase()}===\n${sectionContent[section].value}`;
+            const doc = documents[currentDocument];
+            let fullContent = `===DOCUMENT:${currentDocument}===\n===BOXES===\n`;
+            doc.boxes.forEach(box => {
+                fullContent += `id:${box.id},content:${box.content},color:${box.color},fontSize:${box.fontSize},fontFamily:${box.fontFamily}\n`;
             });
+            fullContent += `===ORDER===\n${doc.order.join(',')}`;
             const blob = new Blob([fullContent], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = 'easydoc_save.txt';
+            link.download = `${currentDocument}_save.txt`;
             link.click();
-            document.getElementById('status').textContent = 'Content saved as easydoc_save.txt';
+            document.getElementById('status').textContent = `Content saved as ${currentDocument}_save.txt`;
         }
 
         function loadFile() {
@@ -357,67 +371,56 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const content = e.target.result;
-                    // Parse the saved content using distinct section markers
-                    let savedTemplate = 'Header-Content-Footer'; // Default template
-                    let savedOrder = ['header', 'content', 'footer']; // Default order
+                    const lines = content.split('\n');
+                    let newDocument = '';
+                    let newBoxes = [];
+                    let newOrder = [];
 
-                    // Extract the template
-                    if (content.includes('===TEMPLATE:')) {
-                        const templateStart = content.indexOf('===TEMPLATE:') + '===TEMPLATE:'.length;
-                        const templateEnd = content.indexOf('===', templateStart);
-                        if (templateEnd !== -1) {
-                            savedTemplate = content.substring(templateStart, templateEnd).trim();
+                    // Parse document name
+                    if (content.includes('===DOCUMENT:')) {
+                        const docStart = content.indexOf('===DOCUMENT:') + '===DOCUMENT:'.length;
+                        const docEnd = content.indexOf('===', docStart);
+                        if (docEnd !== -1) {
+                            newDocument = content.substring(docStart, docEnd).trim();
                         }
                     }
 
-                    // Extract the section order
-                    if (content.includes('===SECTION:ORDER===')) {
-                        const orderStart = content.indexOf('===SECTION:ORDER===') + '===SECTION:ORDER==='.length;
-                        const orderEnd = content.indexOf('===', orderStart);
-                        if (orderEnd !== -1) {
-                            savedOrder = content.substring(orderStart, orderEnd).trim().split(',').map(item => item.trim());
-                        }
-                    }
-
-                    // Clear existing dynamic sections
-                    for (const section in sectionContent) {
-                        if (!['header', 'content', 'footer'].includes(section)) {
-                            delete sectionContent[section];
-                            const shape = document.getElementById(`${section}-shape`);
-                            if (shape) shape.remove();
-                        }
-                    }
-
-                    // Extract and populate sections
-                    savedOrder.forEach(section => {
-                        if (content.includes(`===SECTION:${section.toUpperCase()}===`)) {
-                            const sectionIndex = content.indexOf(`===SECTION:${section.toUpperCase()}===`) + `===SECTION:${section.toUpperCase()}===`.length;
-                            const nextSectionStart = content.indexOf(`===SECTION:`, sectionIndex);
-                            let sectionContentText = nextSectionStart !== -1 ? content.substring(sectionIndex, nextSectionStart).trim() : content.substring(sectionIndex).trim();
-                            if (sectionContent[section]) {
-                                sectionContent[section].value = sectionContentText;
-                            } else {
-                                const newTextarea = document.createElement('textarea');
-                                newTextarea.id = section;
-                                newTextarea.value = sectionContentText;
-                                sectionContent[section] = newTextarea;
-
-                                const newShape = document.createElement('div');
-                                newShape.className = 'shape';
-                                newShape.id = `${section}-shape`;
-                                newShape.innerHTML = `<label>${section.charAt(0).toUpperCase() + section.slice(1)}:</label>${newTextarea.outerHTML}<div class="shape-buttons"><button onclick="moveSection('${section}', 'up')" id="${section}-up">Move Up</button><button onclick="moveSection('${section}', 'down')" id="${section}-down">Move Down</button></div>`;
-                                document.getElementById('sections').appendChild(newShape);
+                    // Parse boxes
+                    let boxesStart = content.indexOf('===BOXES===') + '===BOXES==='.length;
+                    let orderStart = content.indexOf('===ORDER===');
+                    if (boxesStart !== -1 && orderStart !== -1) {
+                        const boxesContent = content.substring(boxesStart, orderStart).trim().split('\n');
+                        boxesContent.forEach(line => {
+                            if (line) {
+                                const [idPart, contentPart, colorPart, fontSizePart, fontFamilyPart] = line.split(',');
+                                const id = parseInt(idPart.split(':')[1]);
+                                const content = contentPart.split(':')[1];
+                                const color = colorPart.split(':')[1];
+                                const fontSize = parseInt(fontSizePart.split(':')[1]);
+                                const fontFamily = fontFamilyPart.split(':')[1];
+                                newBoxes.push({ id, content, color, fontSize, fontFamily });
+                                if (id > currentBoxId) currentBoxId = id + 1;
                             }
-                        }
-                    });
+                        });
 
-                    // Apply the saved template and order
-                    sectionOrder = savedOrder;
-                    document.getElementById('template').value = savedTemplate;
-                    if (savedTemplate === 'Title-Content') {
-                        document.getElementById('footer').value = ''; // Clear footer for Title-Content
+                        // Parse order
+                        const orderContent = content.substring(orderStart + '===ORDER==='.length).trim().split(',');
+                        newOrder = orderContent.map(id => parseInt(id));
                     }
-                    updateSectionOrder();
+
+                    if (newDocument && newBoxes.length > 0 && newOrder.length > 0) {
+                        documents[newDocument] = { boxes: newBoxes, order: newOrder };
+                        if (!document.getElementById('document').querySelector(`option[value="${newDocument}"]`)) {
+                            document.getElementById('document').add(new Option(newDocument, newDocument));
+                        }
+                        document.getElementById('document').value = newDocument;
+                        currentDocument = newDocument;
+                        renderBoxes();
+                        updatePreview();
+                        document.getElementById('status').textContent = `Loaded document: ${newDocument}`;
+                    } else {
+                        document.getElementById('status').textContent = 'Invalid file format!';
+                    }
                 };
                 reader.readAsText(file);
             } else {
@@ -426,8 +429,8 @@
         }
 
         // Initial setup
-        updateSectionReferences();
-        updateSectionOrder();
+        renderBoxes();
+        updatePreview();
     </script>
 </body>
 </html>
