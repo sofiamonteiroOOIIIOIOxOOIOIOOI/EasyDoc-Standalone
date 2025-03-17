@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20 wuspx;
+            margin: 20px;
             background-color: #f0f0f0;
             max-width: 100%;
             box-sizing: border-box;
@@ -123,14 +123,15 @@
 <body>
     <h1>EasyDoc 2.0 - Build Your Document</h1>
 
+    <!-- 1. Select Template -->
     <label for="template">Select Template:</label>
     <select id="template" onchange="updatePreview()">
         <option value="Header-Content-Footer">Header-Content-Footer</option>
         <option value="Title-Content">Title-Content</option>
     </select>
 
+    <!-- 2. Text Boxes -->
     <div id="sections">
-        <!-- Sections will be dynamically rendered here -->
         <div class="shape" id="header-shape">
             <label>Header/Title:</label>
             <textarea id="header">Sample Header\nEdit me!</textarea>
@@ -159,26 +160,42 @@
         </div>
     </div>
 
-    <button onclick="loadFile()">Load File into Content</button>
-    <input type="file" id="fileInput" style="display:none;" accept=".txt" onchange="handleFileSelect(event)">
+    <!-- 3. Add Section -->
+    <button onclick="addSection()">Add Section</button>
 
+    <!-- 4. Refresh Preview -->
     <button onclick="updatePreview()">Refresh Preview</button>
 
+    <!-- 5. Preview -->
     <div class="shape" id="preview-shape">
         <label>Preview:</label>
         <pre id="preview">Preview will appear here...</pre>
     </div>
 
+    <!-- 6. Save Content -->
+    <button onclick="saveContent()">Save Content</button>
+
+    <!-- 7. Load File -->
+    <button onclick="loadFile()">Load File into Content</button>
+    <input type="file" id="fileInput" style="display:none;" accept=".txt" onchange="handleFileSelect(event)">
+
+    <!-- 8. Generate PDF -->
+    <button onclick="generatePDF()">Generate PDF</button>
+
+    <!-- 9. Output File Name -->
     <label for="filename">Output Filename:</label>
     <input type="text" id="filename" value="output.pdf">
 
-    <button onclick="generatePDF()">Generate PDF</button>
-    <button onclick="saveContent()">Save Content</button>
     <p id="status"></p>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         let sectionOrder = ['header', 'content', 'footer']; // Default order
+        let sectionContent = {
+            'header': document.getElementById('header'),
+            'content': document.getElementById('content'),
+            'footer': document.getElementById('footer')
+        };
 
         function updateSectionOrder() {
             const sectionsDiv = document.getElementById('sections');
@@ -212,6 +229,31 @@
             updateSectionOrder();
         }
 
+        function addSection() {
+            const sectionName = prompt('Enter a name for the new section (e.g., Section1):');
+            if (sectionName && !sectionOrder.includes(sectionName.toLowerCase())) {
+                const newSectionId = sectionName.toLowerCase();
+                const newTextarea = document.createElement('textarea');
+                newTextarea.id = newSectionId;
+                newTextarea.value = `New ${sectionName} content here...`;
+
+                const newShape = document.createElement('div');
+                newShape.className = 'shape';
+                newShape.id = `${newSectionId}-shape`;
+                newShape.innerHTML = `<label>${sectionName}:</label>${newTextarea.outerHTML}<div class="shape-buttons"><button onclick="moveSection('${newSectionId}', 'up')" id="${newSectionId}-up">Move Up</button><button onclick="moveSection('${newSectionId}', 'down')" id="${newSectionId}-down">Move Down</button></div>`;
+
+                sectionContent[newSectionId] = newTextarea;
+                sectionOrder.push(newSectionId);
+                document.getElementById('sections').appendChild(newShape);
+                updateSectionOrder();
+                document.getElementById('status').textContent = `Added new section: ${sectionName}`;
+            } else if (sectionOrder.includes(sectionName.toLowerCase())) {
+                document.getElementById('status').textContent = 'Section name already exists!';
+            } else {
+                document.getElementById('status').textContent = 'Section not added. Please enter a name.';
+            }
+        }
+
         function updatePreview() {
             const header = document.getElementById('header').value;
             const content = document.getElementById('content').value;
@@ -223,6 +265,13 @@
                 'content': `Content:\n====\n${content}\n====`,
                 'footer': `Footer:\n${footer}`
             };
+
+            // Include dynamic sections
+            for (const section in sectionContent) {
+                if (!['header', 'content', 'footer'].includes(section)) {
+                    sections[section] = `${section.charAt(0).toUpperCase() + section.slice(1)}:\n${sectionContent[section].value}`;
+                }
+            }
 
             let preview = '';
             sectionOrder.forEach((section, index) => {
@@ -246,6 +295,13 @@
                 'footer': `Footer:\n${footer}`
             };
 
+            // Include dynamic sections
+            for (const section in sectionContent) {
+                if (!['header', 'content', 'footer'].includes(section)) {
+                    sections[section] = `${section.charAt(0).toUpperCase() + section.slice(1)}:\n${sectionContent[section].value}`;
+                }
+            }
+
             let pdfContent = '';
             sectionOrder.forEach((section, index) => {
                 if (template === 'Title-Content' && section === 'footer') return; // Skip footer for Title-Content
@@ -267,7 +323,10 @@
             const footer = document.getElementById('footer').value;
             const template = document.getElementById('template').value;
             // Use distinct section markers and include template and order
-            const fullContent = `===TEMPLATE:${template}===\n===SECTION:ORDER===\n${sectionOrder.join(',')}\n\n===SECTION:HEADER===\n${header}\n\n===SECTION:CONTENT===\n${content}\n\n===SECTION:FOOTER===\n${footer}`;
+            let fullContent = `===TEMPLATE:${template}===\n===SECTION:ORDER===\n${sectionOrder.join(',')}\n`;
+            sectionOrder.forEach(section => {
+                fullContent += `\n===SECTION:${section.toUpperCase()}===\n${sectionContent[section].value}`;
+            });
             const blob = new Blob([fullContent], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -287,9 +346,6 @@
                 reader.onload = function(e) {
                     const content = e.target.result;
                     // Parse the saved content using distinct section markers
-                    let headerContent = '';
-                    let mainContent = '';
-                    let footerContent = '';
                     let savedTemplate = 'Header-Content-Footer'; // Default template
                     let savedOrder = ['header', 'content', 'footer']; // Default order
 
@@ -311,39 +367,43 @@
                         }
                     }
 
-                    // Extract sections based on the saved template
-                    if (content.includes('===SECTION:HEADER===')) {
-                        const headerIndex = content.indexOf('===SECTION:HEADER===') + '===SECTION:HEADER==='.length;
-                        const contentStart = content.indexOf('===SECTION:CONTENT===');
-                        if (contentStart !== -1) {
-                            headerContent = content.substring(headerIndex, contentStart).trim();
+                    // Clear existing dynamic sections
+                    for (const section in sectionContent) {
+                        if (!['header', 'content', 'footer'].includes(section)) {
+                            delete sectionContent[section];
+                            const shape = document.getElementById(`${section}-shape`);
+                            if (shape) shape.remove();
                         }
                     }
-                    if (content.includes('===SECTION:CONTENT===')) {
-                        const contentIndex = content.indexOf('===SECTION:CONTENT===') + '===SECTION:CONTENT==='.length;
-                        const footerStart = content.indexOf('===SECTION:FOOTER===');
-                        if (footerStart !== -1) {
-                            mainContent = content.substring(contentIndex, footerStart).trim();
-                        } else {
-                            mainContent = content.substring(contentIndex).trim();
+
+                    // Extract and populate sections
+                    savedOrder.forEach(section => {
+                        if (content.includes(`===SECTION:${section.toUpperCase()}===`)) {
+                            const sectionIndex = content.indexOf(`===SECTION:${section.toUpperCase()}===`) + `===SECTION:${section.toUpperCase()}===`.length;
+                            const nextSectionStart = content.indexOf(`===SECTION:`, sectionIndex);
+                            let sectionContentText = nextSectionStart !== -1 ? content.substring(sectionIndex, nextSectionStart).trim() : content.substring(sectionIndex).trim();
+                            if (sectionContent[section]) {
+                                sectionContent[section].value = sectionContentText;
+                            } else {
+                                const newTextarea = document.createElement('textarea');
+                                newTextarea.id = section;
+                                newTextarea.value = sectionContentText;
+                                sectionContent[section] = newTextarea;
+
+                                const newShape = document.createElement('div');
+                                newShape.className = 'shape';
+                                newShape.id = `${section}-shape`;
+                                newShape.innerHTML = `<label>${section.charAt(0).toUpperCase() + section.slice(1)}:</label>${newTextarea.outerHTML}<div class="shape-buttons"><button onclick="moveSection('${section}', 'up')" id="${section}-up">Move Up</button><button onclick="moveSection('${section}', 'down')" id="${section}-down">Move Down</button></div>`;
+                                document.getElementById('sections').appendChild(newShape);
+                            }
                         }
-                    }
-                    if (content.includes('===SECTION:FOOTER===')) {
-                        const footerIndex = content.indexOf('===SECTION:FOOTER===') + '===SECTION:FOOTER==='.length;
-                        footerContent = content.substring(footerIndex).trim();
-                    }
+                    });
 
                     // Apply the saved template and order
                     sectionOrder = savedOrder;
                     document.getElementById('template').value = savedTemplate;
                     if (savedTemplate === 'Title-Content') {
-                        document.getElementById('header').value = headerContent;
-                        document.getElementById('content').value = mainContent;
                         document.getElementById('footer').value = ''; // Clear footer for Title-Content
-                    } else if (savedTemplate === 'Header-Content-Footer') {
-                        document.getElementById('header').value = headerContent;
-                        document.getElementById('content').value = mainContent;
-                        document.getElementById('footer').value = footerContent;
                     }
                     updateSectionOrder();
                 };
