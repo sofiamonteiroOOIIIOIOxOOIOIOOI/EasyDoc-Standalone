@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EasyDoc 2.0 - Custom Document Editor</title>
+    <!-- Add CSP to allow jsPDF from cdnjs -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src 'self';">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -125,7 +127,7 @@
                 padding: 8px;
                 font-size: 0.9em;
             }
-            select, input[type="text"] {
+            select, input[type="text"], input[type="color"], input[type="number"] {
                 width: 100%;
                 padding: 5px;
                 font-size: 0.9em;
@@ -138,8 +140,8 @@
     <h1>EasyDoc 2.0 - Custom Document Editor</h1>
 
     <!-- 1. Document Switcher -->
-    <label for="document">Select Document:</label>
-    <select id="document" onchange="switchDocument()">
+    <label for="document-select">Select Document:</label>
+    <select id="document-select" onchange="switchDocument()">
         <option value="portfolio">Portfolio</option>
         <option value="curriculum">Curriculum</option>
         <option value="new">New Document...</option>
@@ -148,7 +150,7 @@
     <!-- 2. Text Boxes -->
     <div id="boxes">
         <div class="box" id="box-0">
-            <label>Text Box 1:</label>
+            <label for="textarea-0">Text Box 1:</label>
             <textarea id="textarea-0">Start typing here...</textarea>
             <div class="box-buttons">
                 <button onclick="customizeBox(0)">Customize</button>
@@ -158,7 +160,7 @@
         </div>
     </div>
 
-    <!-- 3. Add Section -->
+    <!-- 3. Add Box -->
     <button onclick="addBox()">Add Box</button>
 
     <!-- 4. Customize Panel (Hidden by default) -->
@@ -181,7 +183,7 @@
 
     <!-- 6. Preview -->
     <div class="shape" id="preview-shape">
-        <label>Preview:</label>
+        <label for="preview">Preview:</label>
         <pre id="preview">Preview will appear here...</pre>
     </div>
 
@@ -196,8 +198,8 @@
     <button onclick="generatePDF()">Generate PDF</button>
 
     <!-- 10. Output File Name -->
-    <label for="filename">Output Filename:</label>
-    <input type="text" id="filename" value="output.pdf">
+    <label for="filename-input">Output Filename:</label>
+    <input type="text" id="filename-input" value="output.pdf">
 
     <p id="status"></p>
 
@@ -217,17 +219,17 @@
         let currentBoxId = 1; // For generating unique box IDs
 
         function switchDocument() {
-            const select = document.getElementById('document');
+            const select = document.getElementById('document-select');
             const value = select.value;
             if (value === 'new') {
                 const newName = prompt('Enter a name for the new document:');
-                if (newName && !documents[newName]) {
-                    documents[newName] = {
+                if (newName && !documents[newName.toLowerCase()]) {
+                    documents[newName.toLowerCase()] = {
                         boxes: [{ id: 0, content: 'Start typing here...', color: '#d3d3d3', fontSize: 16, fontFamily: 'Arial' }],
                         order: [0]
                     };
-                    select.add(new Option(newName, newName));
-                    select.value = newName;
+                    select.add(new Option(newName, newName.toLowerCase()));
+                    select.value = newName.toLowerCase();
                 } else {
                     select.value = currentDocument;
                     document.getElementById('status').textContent = 'Document name already exists or invalid!';
@@ -255,7 +257,7 @@
                 boxDiv.style.backgroundColor = box.color;
                 textarea.style.fontSize = `${box.fontSize}px`;
                 textarea.style.fontFamily = box.fontFamily;
-                boxDiv.innerHTML = `<label>Text Box ${boxId + 1}:</label>${textarea.outerHTML}<div class="box-buttons"><button onclick="customizeBox(${boxId})">Customize</button><button onclick="moveBox(${boxId}, 'up')" id="box-${boxId}-up">Move Up</button><button onclick="moveBox(${boxId}, 'down')" id="box-${boxId}-down">Move Down</button></div>`;
+                boxDiv.innerHTML = `<label for="textarea-${boxId}">Text Box ${boxId + 1}:</label>${textarea.outerHTML}<div class="box-buttons"><button onclick="customizeBox(${boxId})">Customize</button><button onclick="moveBox(${boxId}, 'up')" id="box-${boxId}-up">Move Up</button><button onclick="moveBox(${boxId}, 'down')" id="box-${boxId}-down">Move Down</button></div>`;
 
                 boxesDiv.appendChild(boxDiv);
             });
@@ -293,7 +295,7 @@
             doc.order.push(newBoxId);
             renderBoxes();
             updatePreview();
-            document.getElementById('status').textContent = `Added new box: ${newBoxId + 1}`;
+            document.getElementById('status').textContent = `Added new box: Text Box ${newBoxId + 1}`;
         }
 
         function customizeBox(boxId) {
@@ -307,15 +309,19 @@
         }
 
         function applyCustomization() {
-            const boxId = document.getElementById('customize-panel').dataset.boxId;
+            const boxId = parseInt(document.getElementById('customize-panel').dataset.boxId);
             const doc = documents[currentDocument];
             const box = doc.boxes.find(b => b.id === boxId);
-            box.color = document.getElementById('box-color').value;
-            box.fontSize = parseInt(document.getElementById('font-size').value);
-            box.fontFamily = document.getElementById('font-family').value;
-            document.getElementById('customize-panel').classList.remove('active');
-            renderBoxes();
-            updatePreview();
+            if (box) {
+                box.color = document.getElementById('box-color').value;
+                box.fontSize = parseInt(document.getElementById('font-size').value);
+                box.fontFamily = document.getElementById('font-family').value;
+                document.getElementById('customize-panel').classList.remove('active');
+                renderBoxes();
+                updatePreview();
+            } else {
+                document.getElementById('status').textContent = 'Error: Box not found!';
+            }
         }
 
         function updatePreview() {
@@ -323,6 +329,10 @@
             let preview = '';
             doc.order.forEach((boxId, index) => {
                 const box = doc.boxes.find(b => b.id === boxId);
+                const textarea = document.getElementById(`textarea-${boxId}`);
+                if (textarea) {
+                    box.content = textarea.value; // Update content from textarea
+                }
                 if (preview !== '') preview += '\n\n';
                 preview += `${box.content}`;
             });
@@ -331,10 +341,14 @@
 
         function generatePDF() {
             const doc = documents[currentDocument];
-            const filename = document.getElementById('filename').value || 'output.pdf';
+            const filename = document.getElementById('filename-input').value || 'output.pdf';
             let pdfContent = '';
             doc.order.forEach((boxId, index) => {
                 const box = doc.boxes.find(b => b.id === boxId);
+                const textarea = document.getElementById(`textarea-${boxId}`);
+                if (textarea) {
+                    box.content = textarea.value; // Update content from textarea
+                }
                 if (pdfContent !== '') pdfContent += '\n\n';
                 pdfContent += `${box.content}`;
             });
@@ -348,9 +362,16 @@
 
         function saveContent() {
             const doc = documents[currentDocument];
+            doc.order.forEach(boxId => {
+                const box = doc.boxes.find(b => b.id === boxId);
+                const textarea = document.getElementById(`textarea-${boxId}`);
+                if (textarea) {
+                    box.content = textarea.value; // Update content from textarea
+                }
+            });
             let fullContent = `===DOCUMENT:${currentDocument}===\n===BOXES===\n`;
             doc.boxes.forEach(box => {
-                fullContent += `id:${box.id},content:${box.content},color:${box.color},fontSize:${box.fontSize},fontFamily:${box.fontFamily}\n`;
+                fullContent += `id:${box.id},content:${box.content.replace(/,/g, '\\,')},color:${box.color},fontSize:${box.fontSize},fontFamily:${box.fontFamily}\n`;
             });
             fullContent += `===ORDER===\n${doc.order.join(',')}`;
             const blob = new Blob([fullContent], { type: 'text/plain' });
@@ -381,7 +402,7 @@
                         const docStart = content.indexOf('===DOCUMENT:') + '===DOCUMENT:'.length;
                         const docEnd = content.indexOf('===', docStart);
                         if (docEnd !== -1) {
-                            newDocument = content.substring(docStart, docEnd).trim();
+                            newDocument = content.substring(docStart, docEnd).trim().toLowerCase();
                         }
                     }
 
@@ -392,14 +413,23 @@
                         const boxesContent = content.substring(boxesStart, orderStart).trim().split('\n');
                         boxesContent.forEach(line => {
                             if (line) {
-                                const [idPart, contentPart, colorPart, fontSizePart, fontFamilyPart] = line.split(',');
+                                const parts = line.split(',content:');
+                                const idPart = parts[0];
+                                const rest = parts[1].split(',color:');
+                                const contentPart = rest[0].replace(/\\,/g, ',');
+                                const rest2 = rest[1].split(',fontSize:');
+                                const colorPart = rest2[0];
+                                const rest3 = rest2[1].split(',fontFamily:');
+                                const fontSizePart = rest3[0];
+                                const fontFamilyPart = rest3[1];
+
                                 const id = parseInt(idPart.split(':')[1]);
-                                const content = contentPart.split(':')[1];
-                                const color = colorPart.split(':')[1];
-                                const fontSize = parseInt(fontSizePart.split(':')[1]);
-                                const fontFamily = fontFamilyPart.split(':')[1];
+                                const content = contentPart;
+                                const color = colorPart;
+                                const fontSize = parseInt(fontSizePart);
+                                const fontFamily = fontFamilyPart;
                                 newBoxes.push({ id, content, color, fontSize, fontFamily });
-                                if (id > currentBoxId) currentBoxId = id + 1;
+                                if (id >= currentBoxId) currentBoxId = id + 1;
                             }
                         });
 
@@ -410,10 +440,10 @@
 
                     if (newDocument && newBoxes.length > 0 && newOrder.length > 0) {
                         documents[newDocument] = { boxes: newBoxes, order: newOrder };
-                        if (!document.getElementById('document').querySelector(`option[value="${newDocument}"]`)) {
-                            document.getElementById('document').add(new Option(newDocument, newDocument));
+                        if (!document.getElementById('document-select').querySelector(`option[value="${newDocument}"]`)) {
+                            document.getElementById('document-select').add(new Option(newDocument, newDocument));
                         }
-                        document.getElementById('document').value = newDocument;
+                        document.getElementById('document-select').value = newDocument;
                         currentDocument = newDocument;
                         renderBoxes();
                         updatePreview();
