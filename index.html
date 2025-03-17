@@ -3,816 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyDoc - Create Documents Easily</title>
-    <!-- Load jsPDF for PDF download -->
-    <script src="libs/jspdf.umd.min.js" defer></script>
+    <title>EasyDoc 2.0 - Shape-Based Editor</title>
     <style>
         body {
-            font-family: Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #f4f4f4;
-            color: #333;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .sidebar {
-            width: 250px;
-            background: #fff;
-            padding: 20px;
-            border-right: 1px solid #ddd;
-            overflow-y: auto;
-        }
-        .document-type-btn {
-            display: block;
-            padding: 10px;
-            margin: 5px 0;
-            background: #e0e0e0;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: left;
-            transition: background 0.3s;
-        }
-        .document-type-btn:hover {
-            background: #d0d0d0;
-        }
-        .document-type-btn.active {
-            background: #4A90E2;
-            color: white;
-        }
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        .template-section {
-            display: none;
-            margin-bottom: 20px;
-        }
-        .template-options {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .template-preview {
-            width: 100px;
-            height: 100px;
-            background: #e0e0e0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-        .template-preview:hover {
-            background: #d0d0d0;
-        }
-        .template-preview.active {
-            background: #4A90E2;
-            color: white;
-        }
-        .template-preview p {
-            margin: 0;
-            text-align: center;
-            font-size: 12px;
-        }
-        .input-section {
-            margin-bottom: 20px;
-        }
-        .input-section h2 {
-            margin-top: 0;
-        }
-        .input-field {
-            display: block;
-            width: 100%;
-            max-width: 500px;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+            max-width: 100%;
             box-sizing: border-box;
         }
-        .add-btn {
-            padding: 10px 20px;
-            background: #4A90E2;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .add-btn:hover {
-            background: #357ABD;
-        }
-        .feature-list {
-            display: none;
-            position: absolute;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            z-index: 10;
-        }
-        .feature-list div {
-            padding: 10px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .feature-list div:hover {
-            background: #f0f0f0;
-        }
-        .preview-section {
-            flex: 1;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            overflow: auto;
+
+        h1 {
             text-align: center;
-            display: none; /* Hidden by default since preview is temporary */
+            font-size: 1.5em;
         }
-        .preview-image {
-            max-width: 595px;
-            max-height: 500px;
-            width: auto;
-            height: auto;
-        }
-        @media (max-width: 768px) {
-            .preview-image { max-height: 300px; }
-            .sidebar { width: 200px; }
-            .template-preview { width: 80px; height: 80px; }
-            .template-preview p { font-size: 10px; }
-        }
-        .action-buttons {
+
+        .shape {
+            background-color: #d3d3d3; /* Gray background for shapes */
+            padding: 10px;
             margin: 10px 0;
-        }
-        .action-buttons button {
-            padding: 10px 20px;
-            margin-right: 10px;
-            background: #4A90E2;
-            color: white;
-            border: none;
             border-radius: 5px;
-            cursor: pointer;
-        }
-        .action-buttons button:hover {
-            background: #357ABD;
-        }
-        .action-buttons button:disabled {
-            background: #a0a0a0;
-            cursor: not-allowed;
-        }
-        .action-buttons button.clear-btn {
-            background: #E94B3C;
-        }
-        .action-buttons button.clear-btn:hover {
-            background: #D43A2A;
-        }
-        .action-buttons button.save-btn {
-            background: #28A745;
-        }
-        .action-buttons button.save-btn:hover {
-            background: #218838;
-        }
-        .action-buttons button.load-btn {
-            background: #FFC107;
-            color: #333;
-        }
-        .action-buttons button.load-btn:hover {
-            background: #E0A800;
-        }
-        .hidden-file-input {
-            display: none;
-        }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
             width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
+            box-sizing: border-box;
         }
-        .modal {
-            background: white;
-            padding: 20px;
+
+        textarea {
+            width: 100%;
+            min-height: 80px;
+            resize: vertical;
+            border: none;
+            background: transparent;
+            font-size: 1em;
+        }
+
+        #preview-shape pre {
+            margin: 0;
+            white-space: pre-wrap;
+            background-color: #e0e0e0; /* Lighter gray for preview */
+            padding: 10px;
             border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            max-width: 600px;
-            max-height: 80vh;
-            overflow: auto;
-            text-align: center;
         }
-        .modal img {
-            max-width: 100%;
-            max-height: 500px;
-        }
-        .modal .close-btn {
-            margin-top: 10px;
-            padding: 8px 15px;
-            background: #E94B3C;
+
+        button {
+            padding: 10px 20px;
+            margin: 5px 0;
+            background-color: #4CAF50;
             color: white;
             border: none;
-            border-radius: 5px;
             cursor: pointer;
+            width: 100%;
+            font-size: 1em;
         }
-        .modal .close-btn:hover {
-            background: #D43A2A;
+
+        button:hover {
+            background-color: #45a049;
         }
-        .info-message {
-            display: block;
-            color: #4A90E2;
-            padding: 10px;
-            border: 1px solid #4A90E2;
-            border-radius: 5px;
-            background: #e6f0fa;
-            margin-bottom: 20px;
+
+        #status {
+            color: #333;
+            word-wrap: break-word;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.2em;
+            }
+            .shape {
+                padding: 5px;
+                margin: 5px 0;
+            }
+            textarea {
+                min-height: 60px;
+                font-size: 0.9em;
+            }
+            button {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+            select, input[type="text"] {
+                width: 100%;
+                padding: 5px;
+                font-size: 0.9em;
+                margin: 5px 0;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <h2>Document Type</h2>
-        <button class="document-type-btn" onclick="selectDocument('CV')">CV</button>
-        <button class="document-type-btn" onclick="selectDocument('Portfolio')">Portfolio</button>
-        <button class="document-type-btn" onclick="selectDocument('Contract')">Contract</button>
-        <button class="document-type-btn" onclick="selectDocument('Receipt')">Receipt</button>
-        <button class="document-type-btn" onclick="selectDocument('MindMap')">Mind Map</button>
-    </div>
-    <div class="main-content">
-        <div class="info-message" id="noPdfInfo">
-            <p>Note: Previews are shown temporarily as images when requested. Download as PDF or save your progress.</p>
-        </div>
-        <div class="template-section" id="templateSection">
-            <h2>Select a Template</h2>
-            <div class="template-options" id="templateOptions"></div>
-        </div>
-        <div class="action-buttons">
-            <button onclick="updatePreview()">Preview</button>
-            <button id="downloadBtn" onclick="downloadPDF()" disabled>Download PDF</button>
-            <button class="save-btn" onclick="saveToFile()">Save to File</button>
-            <button class="load-btn" onclick="showLoadWarning()">Load from File</button>
-            <input type="file" id="fileInput" class="hidden-file-input" accept=".json" onchange="loadFromFile(event)">
-            <button class="clear-btn" onclick="showClearConfirmation()">Clear Saved Data</button>
-        </div>
-        <div class="input-section" id="inputSection">
-            <h2>Fill the Details</h2>
-            <p>Please select a document type and template.</p>
-        </div>
-        <div class="preview-section" id="previewSection">
-            <!-- Hidden by default, used only for download -->
-        </div>
+    <h1>EasyDoc 2.0 - Build Your Document</h1>
+
+    <label for="template">Select Template:</label>
+    <select id="template" onchange="updatePreview()">
+        <option value="Header-Content-Footer">Header-Content-Footer</option>
+        <option value="Title-Content">Title-Content</option>
+    </select>
+
+    <div class="shape" id="header-shape">
+        <label>Header/Title:</label>
+        <textarea id="header">Sample Header\nEdit me!</textarea>
     </div>
 
-    <!-- Modal for Temporary Preview -->
-    <div class="modal-overlay" id="previewModal">
-        <div class="modal">
-            <img id="tempPreviewImage" class="preview-image" src="" alt="Temporary Preview">
-            <button class="close-btn" onclick="hidePreviewModal()">Close</button>
-        </div>
+    <div class="shape" id="content-shape">
+        <label>Content:</label>
+        <textarea id="content">This is the main content.\nWrite your document here.</textarea>
     </div>
 
-    <!-- Modals -->
-    <div class="modal-overlay" id="clearModal">
-        <div class="modal">
-            <p>Are you sure you want to clear all saved data? This will reset the form.</p>
-            <div class="modal-buttons">
-                <button class="confirm-btn" onclick="confirmClear()">Yes</button>
-                <button class="cancel-btn" onclick="hideClearConfirmation()">No</button>
-            </div>
-        </div>
-    </div>
-    <div class="modal-overlay" id="loadModal">
-        <div class="modal">
-            <p>Loading a file will overwrite your current progress. Please save your work first if needed.</p>
-            <div class="modal-buttons">
-                <button class="confirm-btn" onclick="confirmLoad()">Proceed</button>
-                <button class="cancel-btn" onclick="hideLoadWarning()">Cancel</button>
-            </div>
-        </div>
+    <div class="shape" id="footer-shape">
+        <label>Footer:</label>
+        <textarea id="footer">Footer - Add notes or credits.</textarea>
     </div>
 
+    <button onclick="loadFile()">Load File into Content</button>
+    <input type="file" id="fileInput" style="display:none;" accept=".txt" onchange="handleFileSelect(event)">
+
+    <div class="shape" id="preview-shape">
+        <label>Preview:</label>
+        <pre id="preview">Preview will appear here...</pre>
+    </div>
+
+    <label for="filename">Output Filename:</label>
+    <input type="text" id="filename" value="output.pdf">
+
+    <button onclick="generatePDF()">Generate PDF</button>
+    <p id="status"></p>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
-        // --- State Management ---
-        let state = {
-            selectedDocument: '',
-            selectedTemplate: '',
-            additionalFields: [],
-            inputValues: {}
-        };
+        function updatePreview() {
+            const header = document.getElementById('header').value;
+            const content = document.getElementById('content').value;
+            const footer = document.getElementById('footer').value;
+            const template = document.getElementById('template').value;
 
-        const documentFields = {
-            CV: {
-                template1: ['Name', 'Email', 'Phone', 'Address', 'About Me', 'Education', 'Experience'],
-                template2: ['Name', 'Email', 'Phone', 'Address', 'Summary', 'Education', 'Work History'],
-                template3: ['Name', 'Email', 'Phone', 'Address', 'Profile', 'Education', 'Projects']
-            },
-            Portfolio: {
-                template1: ['Introduction', 'Projects', 'Skills', 'Contact Info'],
-                template2: ['About Me', 'Work Samples', 'Achievements', 'Links'],
-                template3: ['Overview', 'Portfolio Items', 'Testimonials', 'Social Links']
-            },
-            Contract: {
-                template1: ['Parties Involved', 'Terms', 'Duration', 'Signatures'],
-                template2: ['Agreement Details', 'Conditions', 'Payment', 'Signatures'],
-                template3: ['Contract Scope', 'Obligations', 'Timeline', 'Signatures']
-            },
-            Receipt: {
-                template1: ['Seller Info', 'Buyer Info', 'Items', 'Total Amount'],
-                template2: ['Transaction Date', 'Items Purchased', 'Price', 'Payment Method'],
-                template3: ['Receipt Number', 'Items', 'Amount Paid', 'Date']
-            },
-            MindMap: {
-                template1: ['Central Idea', 'Main Branches', 'Sub-Branches', 'Notes'],
-                template2: ['Core Concept', 'Categories', 'Details', 'Connections'],
-                template3: ['Main Topic', 'Ideas', 'Sub-Ideas', 'Summary']
+            let preview = '';
+            if (template === "Header-Content-Footer") {
+                preview = `Header:\n${header}\n\nContent:\n====\n${content}\n====\n\nFooter:\n${footer}`;
+            } else if (template === "Title-Content") {
+                preview = `Title: ${header}\n----\nContent:\n${content}`;
             }
-        };
-
-        const templates = {
-            CV: ['template1', 'template2', 'template3'],
-            Portfolio: ['template1', 'template2', 'template3'],
-            Contract: ['template1', 'template2', 'template3'],
-            Receipt: ['template1', 'template2', 'template3'],
-            MindMap: ['template1', 'template2', 'template3']
-        };
-
-        // --- Modal Functions ---
-        function showModal(modalId) {
-            document.getElementById(modalId).style.display = 'flex';
+            document.getElementById('preview').textContent = preview;
         }
 
-        function hideModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
+        function generatePDF() {
+            const header = document.getElementById('header').value;
+            const content = document.getElementById('content').value;
+            const footer = document.getElementById('footer').value;
+            const template = document.getElementById('template').value;
+            const filename = document.getElementById('filename').value || 'output.pdf';
 
-        function showClearConfirmation() {
-            showModal('clearModal');
-        }
-
-        function hideClearConfirmation() {
-            hideModal('clearModal');
-        }
-
-        function confirmClear() {
-            clearState();
-            hideClearConfirmation();
-        }
-
-        function showLoadWarning() {
-            showModal('loadModal');
-        }
-
-        function hideLoadWarning() {
-            hideModal('loadModal');
-        }
-
-        function confirmLoad() {
-            hideLoadWarning();
-            document.getElementById('fileInput').click();
-        }
-
-        function showPreviewModal() {
-            showModal('previewModal');
-        }
-
-        function hidePreviewModal() {
-            hideModal('previewModal');
-            document.getElementById('tempPreviewImage').src = ''; // Clear the image
-        }
-
-        // --- File Save/Load Functions ---
-        function saveToFile() {
-            try {
-                const jsonString = JSON.stringify(state, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `easyDocState-${state.selectedDocument || 'document'}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                console.log('Saved state to file:', state);
-            } catch (error) {
-                console.error('Failed to save state to file:', error);
-                alert('Error saving to file. Please try again.');
-            }
-        }
-
-        async function loadFromFile(event) {
-            const file = event.target.files[0];
-            if (!file) {
-                console.log('No file selected.');
-                return;
-            }
-            if (!file.name.endsWith('.json')) {
-                alert('Please upload a valid JSON file.');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const loadedState = JSON.parse(e.target.result);
-                    console.log('Loaded state from file:', loadedState);
-
-                    // Validate and apply the state
-                    state.selectedDocument = loadedState.selectedDocument || '';
-                    state.selectedTemplate = loadedState.selectedTemplate || '';
-                    state.additionalFields = Array.isArray(loadedState.additionalFields) ? loadedState.additionalFields : [];
-                    state.inputValues = typeof loadedState.inputValues === 'object' && loadedState.inputValues !== null ? loadedState.inputValues : {};
-
-                    console.log('Applied state:', state);
-
-                    // Reset the UI before applying the new state
-                    resetUI();
-
-                    // Update the UI: Select document and template, then update input fields
-                    if (state.selectedDocument) {
-                        selectDocument(state.selectedDocument);
-                    }
-                    if (state.selectedTemplate) {
-                        selectTemplate(state.selectedTemplate);
-                    }
-                    updateInputFields(); // Ensure this is called to show the "Fill the Details" section
-                } catch (error) {
-                    console.error('Failed to load state from file:', error);
-                    alert('Error loading file. Please ensure it’s a valid EasyDoc state file.');
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = ''; // Reset input for reuse
-        }
-
-        function clearState() {
-            state = {
-                selectedDocument: '',
-                selectedTemplate: '',
-                additionalFields: [],
-                inputValues: {}
-            };
-            console.log('Cleared state:', state);
-            resetUI();
-            updateInputFields();
-        }
-
-        // --- UI Update Functions ---
-        function resetUI() {
-            document.querySelectorAll('.document-type-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.template-preview').forEach(preview => preview.classList.remove('active'));
-            document.getElementById('templateSection').style.display = 'none';
-            document.getElementById('downloadBtn').disabled = true;
-            hidePreviewModal();
-        }
-
-        function selectDocument(docType) {
-            console.log('Selecting document:', docType);
-            state.selectedDocument = docType;
-            state.selectedTemplate = '';
-            state.additionalFields = [];
-
-            // Highlight the selected document button
-            document.querySelectorAll('.document-type-btn').forEach(btn => btn.classList.remove('active'));
-            const docButton = document.querySelector(`.document-type-btn[onclick="selectDocument('${docType}')"]`);
-            if (docButton) {
-                docButton.classList.add('active');
-                console.log('Document button highlighted:', docType);
-            } else {
-                console.warn('Document button not found for:', docType);
-            }
-
-            // Show and populate the template section
-            const templateSection = document.getElementById('templateSection');
-            const templateOptions = document.getElementById('templateOptions');
-            templateSection.style.display = 'block';
-            templateOptions.innerHTML = '';
-            templates[docType].forEach(template => {
-                const preview = document.createElement('div');
-                preview.className = `template-preview ${template}`;
-                preview.innerHTML = `<p>${template.charAt(0).toUpperCase() + template.slice(1)}<br>Sample</p>`;
-                preview.onclick = () => selectTemplate(template);
-                templateOptions.appendChild(preview);
-            });
-
-            updateInputFields();
-        }
-
-        function selectTemplate(template) {
-            console.log('Selecting template:', template);
-            state.selectedTemplate = template;
-
-            // Highlight the selected template
-            document.querySelectorAll('.template-preview').forEach(preview => preview.classList.remove('active'));
-            const templatePreview = document.querySelector(`.template-preview.${template}`);
-            if (templatePreview) {
-                templatePreview.classList.add('active');
-                console.log('Template preview highlighted:', template);
-            } else {
-                console.warn('Template preview not found for:', template);
-            }
-
-            updateInputFields();
-        }
-
-        function updateInputFields() {
-            console.log('Updating input fields...');
-            const inputSection = document.getElementById('inputSection');
-            inputSection.innerHTML = '<h2>Fill the Details</h2>';
-
-            if (state.selectedDocument && state.selectedTemplate) {
-                const fields = documentFields[state.selectedDocument][state.selectedTemplate];
-                fields.forEach(field => {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.className = 'input-field';
-                    input.id = field.replace(/\s/g, '');
-                    input.placeholder = `${field}...`;
-                    if (state.inputValues[input.id]) {
-                        input.value = state.inputValues[input.id];
-                        console.log(`Restored input field ${field}: ${input.value}`);
-                    }
-                    inputSection.appendChild(input);
-                });
-
-                state.additionalFields.forEach((field, index) => {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.className = 'input-field';
-                    input.id = `additional-${field}-${index}`;
-                    input.placeholder = `${field}...`;
-                    if (state.inputValues[input.id]) {
-                        input.value = state.inputValues[input.id];
-                        console.log(`Restored additional field ${field}-${index}: ${input.value}`);
-                    }
-                    inputSection.appendChild(input);
-                });
-
-                const buttonDiv = document.createElement('div');
-                buttonDiv.style.position = 'relative';
-                buttonDiv.innerHTML = `
-                    <button class="add-btn" onclick="toggleFeatureList()">Add New Feature</button>
-                    <div class="feature-list" id="featureList">
-                        <div onclick="addFeature('Title')">Title</div>
-                        <div onclick="addFeature('Text')">Text</div>
-                        <div onclick="addFeature('Email')">Email</div>
-                        <div onclick="addFeature('Number')">Number</div>
-                        <div onclick="addFeature('Date')">Date</div>
-                        <div onclick="addFeature('Address')">Address</div>
-                        <div onclick="addFeature('Skills')">Skills</div>
-                        <div onclick="addFeature('Experience')">Experience</div>
-                        <div onclick="addFeature('Education')">Education</div>
-                        <div onclick="addFeature('Certifications')">Certifications</div>
-                    </div>
-                `;
-                inputSection.appendChild(buttonDiv);
-
-                // Add click event listener for feature list (only once)
-                const featureList = document.getElementById('featureList');
-                if (!document.featureListListener) {
-                    document.addEventListener('click', handleClickOutside);
-                    document.featureListListener = true;
-                }
-            } else {
-                inputSection.innerHTML += '<p>Please select a document type and template.</p>';
-            }
-        }
-
-        function saveInputValues() {
-            console.log('Saving input values...');
-            const inputs = document.querySelectorAll('.input-field');
-            state.inputValues = {};
-            inputs.forEach(input => {
-                if (input.value) {
-                    state.inputValues[input.id] = input.value;
-                    console.log(`Saved input field ${input.id}: ${input.value}`);
-                }
-            });
-            console.log('Current inputValues:', state.inputValues);
-        }
-
-        // --- Feature List Handling ---
-        function toggleFeatureList() {
-            const featureList = document.getElementById('featureList');
-            if (featureList) {
-                featureList.style.display = featureList.style.display === 'block' ? 'none' : 'block';
-            } else {
-                console.warn('featureList not found when toggling.');
-            }
-        }
-
-        function addFeature(feature) {
-            console.log('Adding feature:', feature);
-            state.additionalFields.push(feature);
-            saveInputValues();
-            updateInputFields();
-            toggleFeatureList();
-        }
-
-        function handleClickOutside(event) {
-            const featureList = document.getElementById('featureList');
-            const addButton = document.querySelector('.add-btn');
-            if (featureList && !featureList.contains(event.target) && event.target !== addButton) {
-                featureList.style.display = 'none';
-            }
-        }
-
-        // --- Preview and PDF Export ---
-        function extractFieldValues() {
-            if (!state.selectedDocument || !state.selectedTemplate) {
-                alert('Please select a document type and template.');
-                return null;
-            }
-
-            const fields = documentFields[state.selectedDocument][state.selectedTemplate];
-            let name = '', email = '', phone = '', address = '';
-            let otherFields = [];
-
-            fields.forEach(field => {
-                const inputValue = document.getElementById(field.replace(/\s/g, '')).value;
-                if (field === 'Name') name = inputValue;
-                else if (field === 'Email') email = inputValue;
-                else if (field === 'Phone') phone = inputValue;
-                else if (field === 'Address') address = inputValue;
-                else {
-                    otherFields.push({ field, value: inputValue || `Enter your ${field.toLowerCase()}...` });
-                }
-            });
-
-            state.additionalFields.forEach((field, index) => {
-                const inputValue = document.getElementById(`additional-${field}-${index}`).value;
-                otherFields.push({ field, value: inputValue || `Enter your ${field.toLowerCase()}...` });
-            });
-
-            return { name, email, phone, address, otherFields };
-        }
-
-        async function updatePreview() {
-            if (!state.selectedDocument || !state.selectedTemplate) {
-                alert('Please select a document type and template.');
-                return;
-            }
-
-            const extracted = extractFieldValues();
-            if (!extracted) return;
-
-            const { name, email, phone, address, otherFields } = extracted;
-
-            // Create a canvas to generate the temporary image
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-
-            // Set canvas size (A4 at 72 DPI: 595x842)
-            canvas.width = 595;
-            canvas.height = 842;
-
-            // Draw the base layout (simplified, no pre-rendered images)
-            context.fillStyle = '#4A90E2'; // Header background
-            context.fillRect(0, 0, canvas.width, 150);
-            context.fillStyle = '#333'; // Decorative line
-            context.fillRect(0, 150, canvas.width, 6);
-            context.fillStyle = '#f5f5f5'; // Sidebar background
-            context.fillRect(0, 156, 150, canvas.height - 156);
-
-            // Overlay text (coordinates are approximate)
-            context.fillStyle = 'white';
-            context.font = 'bold 24px Helvetica';
-            context.fillText(name || 'Your Name', 20, 100); // Header name
-
-            context.fillStyle = '#333';
-            context.font = '12px Helvetica';
-            context.fillText(`Email: ${email || 'your.email@example.com'}`, 10, 180); // Sidebar
-            context.fillText(`Phone: ${phone || '(123) 456-7890'}`, 10, 200);
-            context.fillText(`Address: ${address || '123 Main St, City'}`, 10, 220);
-
-            // Main content
-            let y = 200;
-            context.font = 'bold 16px Helvetica';
-            context.fillText(state.selectedDocument, 160, 180);
-            context.font = '12px Helvetica';
-            otherFields.forEach(({ field, value }) => {
-                context.font = 'bold 16px Helvetica';
-                context.fillText(field, 160, y);
-                y += 20;
-                context.font = '12px Helvetica';
-                wrapText(context, value, 160, y, 400, 20);
-                y += 20 * Math.ceil(value.length / 40); // Rough line wrapping
-            });
-
-            // Display in modal
-            const tempPreviewImage = document.getElementById('tempPreviewImage');
-            tempPreviewImage.src = canvas.toDataURL('image/png');
-            showPreviewModal();
-
-            // Auto-dismiss after 5 seconds
-            setTimeout(hidePreviewModal, 5000);
-
-            // Enable download button for this session
-            document.getElementById('downloadBtn').disabled = false;
-            saveInputValues();
-        }
-
-        function wrapText(context, text, x, y, maxWidth, lineHeight) {
-            const words = text.split(' ');
-            let line = '';
-            for (let n = 0; n < words.length; n++) {
-                const testLine = line + words[n] + ' ';
-                const metrics = context.measureText(testLine);
-                const testWidth = metrics.width;
-                if (testWidth > maxWidth && n > 0) {
-                    context.fillText(line, x, y);
-                    line = words[n] + ' ';
-                    y += lineHeight;
-                } else {
-                    line = testLine;
-                }
-            }
-            context.fillText(line, x, y);
-        }
-
-        function generatePDFContent(doc) {
-            const extracted = extractFieldValues();
-            if (!extracted) return false;
-
-            const { name, email, phone, address, otherFields } = extracted;
-
-            // Header background (blue rectangle)
-            doc.setFillColor(74, 144, 226); // #4A90E2
-            doc.rect(0, 0, 210, 50, 'F');
-
-            // Decorative line (black rectangle)
-            doc.setFillColor(51, 51, 51); // #333
-            doc.rect(0, 50, 210, 2, 'F');
-
-            // Sidebar background (light gray rectangle)
-            doc.setFillColor(245, 245, 245); // #f5f5f5
-            doc.rect(0, 50, 50, 247, 'F');
-
-            // Name in header
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(24);
-            doc.setTextColor(255, 255, 255); // White
-            doc.text(name || 'Your Name', 20, 40);
-
-            // Sidebar content
-            doc.setFontSize(12);
-            doc.setTextColor(51, 51, 51); // #333
-            doc.setFont("helvetica", "normal");
-            doc.text(`Email: ${email || 'your.email@example.com'}`, 10, 70);
-            doc.text(`Phone: ${phone || '(123) 456-7890'}`, 10, 80);
-            doc.text(`Address: ${address || '123 Main St, City'}`, 10, 90);
-
-            // Main content
-            let y = 70;
-            doc.setFontSize(16);
-            doc.setFont("helvetica", "bold");
-            doc.text(state.selectedDocument, 60, y);
-            y += 10;
-
-            doc.setFontSize(12);
-            doc.setFont("helvetica", "normal");
-            otherFields.forEach(({ field, value }) => {
-                doc.setFont("helvetica", "bold");
-                doc.text(field, 60, y);
-                y += 5;
-                doc.setFont("helvetica", "normal");
-                const lines = doc.splitTextToSize(value, 130);
-                doc.text(lines, 60, y);
-                y += lines.length * 5 + 5;
-                if (y > 270) {
-                    doc.addPage();
-                    y = 20;
-                }
-            });
-
-            return true;
-        }
-
-        function downloadPDF() {
-            if (!window.jspdf) {
-                alert('jsPDF library is missing. Please ensure libs/jspdf.umd.min.js is available.');
-                return;
+            let pdfContent = '';
+            if (template === "Header-Content-Footer") {
+                pdfContent = `Header:\n${header}\n\nContent:\n====\n${content}\n====\n\nFooter:\n${footer}`;
+            } else if (template === "Title-Content") {
+                pdfContent = `Title: ${header}\n----\nContent:\n${content}`;
             }
 
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
+            const doc = new jsPDF();
+            doc.text(pdfContent, 10, 10);
+            doc.save(filename);
 
-            const success = generatePDFContent(doc);
-            if (!success) return;
-
-            doc.save(`${state.selectedDocument}_${state.selectedTemplate}.pdf`);
+            document.getElementById('status').textContent = `PDF generated and downloaded as ${filename}`;
         }
+
+        function loadFile() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('content').value = e.target.result;
+                    updatePreview();
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // Initial preview
+        updatePreview();
     </script>
 </body>
 </html>
