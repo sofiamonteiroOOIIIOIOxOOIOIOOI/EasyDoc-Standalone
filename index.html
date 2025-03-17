@@ -174,8 +174,9 @@
             const header = document.getElementById('header').value;
             const content = document.getElementById('content').value;
             const footer = document.getElementById('footer').value;
-            // Use distinct section markers to avoid confusion
-            const fullContent = `===SECTION:HEADER===\n${header}\n\n===SECTION:CONTENT===\n${content}\n\n===SECTION:FOOTER===\n${footer}`;
+            const template = document.getElementById('template').value;
+            // Use distinct section markers and include template
+            const fullContent = `===TEMPLATE:${template}===\n===SECTION:HEADER===\n${header}\n\n===SECTION:CONTENT===\n${content}\n\n===SECTION:FOOTER===\n${footer}`;
             const blob = new Blob([fullContent], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -195,12 +196,21 @@
                 reader.onload = function(e) {
                     const content = e.target.result;
                     // Parse the saved content using distinct section markers
-                    const sections = content.split(/===SECTION:[A-Z]+===/);
                     let headerContent = '';
                     let mainContent = '';
                     let footerContent = '';
+                    let savedTemplate = 'Header-Content-Footer'; // Default template
 
-                    // Look for the section markers in the original content
+                    // Extract the template
+                    if (content.includes('===TEMPLATE:')) {
+                        const templateStart = content.indexOf('===TEMPLATE:') + '===TEMPLATE:'.length;
+                        const templateEnd = content.indexOf('===', templateStart);
+                        if (templateEnd !== -1) {
+                            savedTemplate = content.substring(templateStart, templateEnd).trim();
+                        }
+                    }
+
+                    // Extract sections based on the saved template
                     if (content.includes('===SECTION:HEADER===')) {
                         const headerIndex = content.indexOf('===SECTION:HEADER===') + '===SECTION:HEADER==='.length;
                         const contentStart = content.indexOf('===SECTION:CONTENT===');
@@ -222,10 +232,17 @@
                         footerContent = content.substring(footerIndex).trim();
                     }
 
-                    // Assign parsed content to the respective textareas
-                    document.getElementById('header').value = headerContent;
-                    document.getElementById('content').value = mainContent;
-                    document.getElementById('footer').value = footerContent;
+                    // Apply the saved template and populate accordingly
+                    document.getElementById('template').value = savedTemplate;
+                    if (savedTemplate === 'Title-Content') {
+                        document.getElementById('header').value = headerContent;
+                        document.getElementById('content').value = mainContent;
+                        document.getElementById('footer').value = ''; // Clear footer for Title-Content
+                    } else if (savedTemplate === 'Header-Content-Footer') {
+                        document.getElementById('header').value = headerContent;
+                        document.getElementById('content').value = mainContent;
+                        document.getElementById('footer').value = footerContent;
+                    }
                     updatePreview();
                 };
                 reader.readAsText(file);
