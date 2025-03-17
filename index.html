@@ -191,11 +191,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         let sectionOrder = ['header', 'content', 'footer']; // Default order
-        let sectionContent = {
-            'header': document.getElementById('header'),
-            'content': document.getElementById('content'),
-            'footer': document.getElementById('footer')
-        };
+        let sectionContent = {}; // Initialize as an empty object to be populated dynamically
+
+        // Function to update sectionContent with current textarea references
+        function updateSectionReferences() {
+            sectionContent = {
+                'header': document.getElementById('header'),
+                'content': document.getElementById('content'),
+                'footer': document.getElementById('footer')
+            };
+            // Add dynamically created sections
+            sectionOrder.forEach(section => {
+                if (!['header', 'content', 'footer'].includes(section)) {
+                    const textarea = document.getElementById(section);
+                    if (textarea) sectionContent[section] = textarea;
+                }
+            });
+        }
 
         function updateSectionOrder() {
             const sectionsDiv = document.getElementById('sections');
@@ -216,6 +228,7 @@
                 document.getElementById(`${section}-down`).disabled = index === sectionOrder.length - 1;
             });
 
+            updateSectionReferences(); // Refresh sectionContent after reordering
             updatePreview();
         }
 
@@ -242,7 +255,6 @@
                 newShape.id = `${newSectionId}-shape`;
                 newShape.innerHTML = `<label>${sectionName}:</label>${newTextarea.outerHTML}<div class="shape-buttons"><button onclick="moveSection('${newSectionId}', 'up')" id="${newSectionId}-up">Move Up</button><button onclick="moveSection('${newSectionId}', 'down')" id="${newSectionId}-down">Move Down</button></div>`;
 
-                sectionContent[newSectionId] = newTextarea;
                 sectionOrder.push(newSectionId);
                 document.getElementById('sections').appendChild(newShape);
                 updateSectionOrder();
@@ -255,9 +267,10 @@
         }
 
         function updatePreview() {
-            const header = document.getElementById('header').value;
-            const content = document.getElementById('content').value;
-            const footer = document.getElementById('footer').value;
+            updateSectionReferences(); // Ensure sectionContent is up-to-date
+            const header = sectionContent['header'].value;
+            const content = sectionContent['content'].value;
+            const footer = sectionContent['footer'].value;
             const template = document.getElementById('template').value;
 
             const sections = {
@@ -283,9 +296,10 @@
         }
 
         function generatePDF() {
-            const header = document.getElementById('header').value;
-            const content = document.getElementById('content').value;
-            const footer = document.getElementById('footer').value;
+            updateSectionReferences(); // Ensure sectionContent is up-to-date
+            const header = sectionContent['header'].value;
+            const content = sectionContent['content'].value;
+            const footer = sectionContent['footer'].value;
             const template = document.getElementById('template').value;
             const filename = document.getElementById('filename').value || 'output.pdf';
 
@@ -318,9 +332,7 @@
         }
 
         function saveContent() {
-            const header = document.getElementById('header').value;
-            const content = document.getElementById('content').value;
-            const footer = document.getElementById('footer').value;
+            updateSectionReferences(); // Ensure sectionContent is up-to-date
             const template = document.getElementById('template').value;
             // Use distinct section markers and include template and order
             let fullContent = `===TEMPLATE:${template}===\n===SECTION:ORDER===\n${sectionOrder.join(',')}\n`;
@@ -414,6 +426,7 @@
         }
 
         // Initial setup
+        updateSectionReferences();
         updateSectionOrder();
     </script>
 </body>
