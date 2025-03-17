@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 20 wuspx;
             background-color: #f0f0f0;
             max-width: 100%;
             box-sizing: border-box;
@@ -25,6 +25,21 @@
             border-radius: 5px;
             width: 100%;
             box-sizing: border-box;
+            position: relative;
+        }
+
+        .shape-buttons {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .shape-buttons button {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            width: auto;
         }
 
         textarea {
@@ -59,6 +74,11 @@
             background-color: #45a049;
         }
 
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
         #status {
             color: #333;
             word-wrap: break-word;
@@ -72,6 +92,16 @@
             .shape {
                 padding: 5px;
                 margin: 5px 0;
+            }
+            .shape-buttons {
+                top: 5px;
+                right: 5px;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .shape-buttons button {
+                padding: 3px 6px;
+                font-size: 0.7em;
             }
             textarea {
                 min-height: 60px;
@@ -99,19 +129,34 @@
         <option value="Title-Content">Title-Content</option>
     </select>
 
-    <div class="shape" id="header-shape">
-        <label>Header/Title:</label>
-        <textarea id="header">Sample Header\nEdit me!</textarea>
-    </div>
+    <div id="sections">
+        <!-- Sections will be dynamically rendered here -->
+        <div class="shape" id="header-shape">
+            <label>Header/Title:</label>
+            <textarea id="header">Sample Header\nEdit me!</textarea>
+            <div class="shape-buttons">
+                <button onclick="moveSection('header', 'up')" id="header-up">Move Up</button>
+                <button onclick="moveSection('header', 'down')" id="header-down">Move Down</button>
+            </div>
+        </div>
 
-    <div class="shape" id="content-shape">
-        <label>Content:</label>
-        <textarea id="content">This is the main content.\nWrite your document here.</textarea>
-    </div>
+        <div class="shape" id="content-shape">
+            <label>Content:</label>
+            <textarea id="content">This is the main content.\nWrite your document here.</textarea>
+            <div class="shape-buttons">
+                <button onclick="moveSection('content', 'up')" id="content-up">Move Up</button>
+                <button onclick="moveSection('content', 'down')" id="content-down">Move Down</button>
+            </div>
+        </div>
 
-    <div class="shape" id="footer-shape">
-        <label>Footer:</label>
-        <textarea id="footer">Footer - Add notes or credits.</textarea>
+        <div class="shape" id="footer-shape">
+            <label>Footer:</label>
+            <textarea id="footer">Footer - Add notes or credits.</textarea>
+            <div class="shape-buttons">
+                <button onclick="moveSection('footer', 'up')" id="footer-up">Move Up</button>
+                <button onclick="moveSection('footer', 'down')" id="footer-down">Move Down</button>
+            </div>
+        </div>
     </div>
 
     <button onclick="loadFile()">Load File into Content</button>
@@ -133,18 +178,58 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
+        let sectionOrder = ['header', 'content', 'footer']; // Default order
+
+        function updateSectionOrder() {
+            const sectionsDiv = document.getElementById('sections');
+            const sectionElements = {};
+            sectionOrder.forEach(section => {
+                sectionElements[section] = document.getElementById(`${section}-shape`);
+            });
+
+            // Remove all sections and re-append in the new order
+            sectionsDiv.innerHTML = '';
+            sectionOrder.forEach(section => {
+                sectionsDiv.appendChild(sectionElements[section]);
+            });
+
+            // Update button states (disable Move Up for first, Move Down for last)
+            sectionOrder.forEach((section, index) => {
+                document.getElementById(`${section}-up`).disabled = index === 0;
+                document.getElementById(`${section}-down`).disabled = index === sectionOrder.length - 1;
+            });
+
+            updatePreview();
+        }
+
+        function moveSection(section, direction) {
+            const index = sectionOrder.indexOf(section);
+            if (direction === 'up' && index > 0) {
+                [sectionOrder[index], sectionOrder[index - 1]] = [sectionOrder[index - 1], sectionOrder[index]];
+            } else if (direction === 'down' && index < sectionOrder.length - 1) {
+                [sectionOrder[index], sectionOrder[index + 1]] = [sectionOrder[index + 1], sectionOrder[index]];
+            }
+            updateSectionOrder();
+        }
+
         function updatePreview() {
             const header = document.getElementById('header').value;
             const content = document.getElementById('content').value;
             const footer = document.getElementById('footer').value;
             const template = document.getElementById('template').value;
 
+            const sections = {
+                'header': template === 'Title-Content' ? `Title:\n${header}` : `Header:\n${header}`,
+                'content': `Content:\n====\n${content}\n====`,
+                'footer': `Footer:\n${footer}`
+            };
+
             let preview = '';
-            if (template === "Header-Content-Footer") {
-                preview = `Header:\n${header}\n\nContent:\n====\n${content}\n====\n\nFooter:\n${footer}`;
-            } else if (template === "Title-Content") {
-                preview = `Title: ${header}\n----\nContent:\n${content}`;
-            }
+            sectionOrder.forEach((section, index) => {
+                if (template === 'Title-Content' && section === 'footer') return; // Skip footer for Title-Content
+                if (preview !== '') preview += '\n\n';
+                preview += sections[section];
+            });
             document.getElementById('preview').textContent = preview;
         }
 
@@ -155,12 +240,18 @@
             const template = document.getElementById('template').value;
             const filename = document.getElementById('filename').value || 'output.pdf';
 
+            const sections = {
+                'header': template === 'Title-Content' ? `Title:\n${header}` : `Header:\n${header}`,
+                'content': `Content:\n====\n${content}\n====`,
+                'footer': `Footer:\n${footer}`
+            };
+
             let pdfContent = '';
-            if (template === "Header-Content-Footer") {
-                pdfContent = `Header:\n${header}\n\nContent:\n====\n${content}\n====\n\nFooter:\n${footer}`;
-            } else if (template === "Title-Content") {
-                pdfContent = `Title: ${header}\n----\nContent:\n${content}`;
-            }
+            sectionOrder.forEach((section, index) => {
+                if (template === 'Title-Content' && section === 'footer') return; // Skip footer for Title-Content
+                if (pdfContent !== '') pdfContent += '\n\n';
+                pdfContent += sections[section];
+            });
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -175,8 +266,8 @@
             const content = document.getElementById('content').value;
             const footer = document.getElementById('footer').value;
             const template = document.getElementById('template').value;
-            // Use distinct section markers and include template
-            const fullContent = `===TEMPLATE:${template}===\n===SECTION:HEADER===\n${header}\n\n===SECTION:CONTENT===\n${content}\n\n===SECTION:FOOTER===\n${footer}`;
+            // Use distinct section markers and include template and order
+            const fullContent = `===TEMPLATE:${template}===\n===SECTION:ORDER===\n${sectionOrder.join(',')}\n\n===SECTION:HEADER===\n${header}\n\n===SECTION:CONTENT===\n${content}\n\n===SECTION:FOOTER===\n${footer}`;
             const blob = new Blob([fullContent], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -200,6 +291,7 @@
                     let mainContent = '';
                     let footerContent = '';
                     let savedTemplate = 'Header-Content-Footer'; // Default template
+                    let savedOrder = ['header', 'content', 'footer']; // Default order
 
                     // Extract the template
                     if (content.includes('===TEMPLATE:')) {
@@ -207,6 +299,15 @@
                         const templateEnd = content.indexOf('===', templateStart);
                         if (templateEnd !== -1) {
                             savedTemplate = content.substring(templateStart, templateEnd).trim();
+                        }
+                    }
+
+                    // Extract the section order
+                    if (content.includes('===SECTION:ORDER===')) {
+                        const orderStart = content.indexOf('===SECTION:ORDER===') + '===SECTION:ORDER==='.length;
+                        const orderEnd = content.indexOf('===', orderStart);
+                        if (orderEnd !== -1) {
+                            savedOrder = content.substring(orderStart, orderEnd).trim().split(',').map(item => item.trim());
                         }
                     }
 
@@ -232,7 +333,8 @@
                         footerContent = content.substring(footerIndex).trim();
                     }
 
-                    // Apply the saved template and populate accordingly
+                    // Apply the saved template and order
+                    sectionOrder = savedOrder;
                     document.getElementById('template').value = savedTemplate;
                     if (savedTemplate === 'Title-Content') {
                         document.getElementById('header').value = headerContent;
@@ -243,7 +345,7 @@
                         document.getElementById('content').value = mainContent;
                         document.getElementById('footer').value = footerContent;
                     }
-                    updatePreview();
+                    updateSectionOrder();
                 };
                 reader.readAsText(file);
             } else {
@@ -251,8 +353,8 @@
             }
         }
 
-        // Initial preview
-        updatePreview();
+        // Initial setup
+        updateSectionOrder();
     </script>
 </body>
 </html>
