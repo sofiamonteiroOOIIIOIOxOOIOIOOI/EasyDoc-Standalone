@@ -174,7 +174,8 @@
             const header = document.getElementById('header').value;
             const content = document.getElementById('content').value;
             const footer = document.getElementById('footer').value;
-            const fullContent = `Header:\n${header}\n\nContent:\n${content}\n\nFooter:\n${footer}`;
+            // Use distinct section markers to avoid confusion
+            const fullContent = `===SECTION:HEADER===\n${header}\n\n===SECTION:CONTENT===\n${content}\n\n===SECTION:FOOTER===\n${footer}`;
             const blob = new Blob([fullContent], { type: 'text/plain' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -193,25 +194,43 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const content = e.target.result;
-                    // Parse the saved content (assuming Header, Content, Footer format)
-                    const lines = content.split('\n');
-                    let header = '', currentSection = 'content', currentContent = '';
-                    lines.forEach(line => {
-                        if (line === 'Header:') currentSection = 'header';
-                        else if (line === 'Content:') currentSection = 'content';
-                        else if (line === 'Footer:') currentSection = 'footer';
-                        else {
-                            if (currentSection === 'header' && line.trim() !== '') header += line + '\n';
-                            else if (currentSection === 'content') currentContent += line + '\n';
-                            else if (currentSection === 'footer') currentContent += line + '\n';
+                    // Parse the saved content using distinct section markers
+                    const sections = content.split(/===SECTION:[A-Z]+===/);
+                    let headerContent = '';
+                    let mainContent = '';
+                    let footerContent = '';
+
+                    // Look for the section markers in the original content
+                    if (content.includes('===SECTION:HEADER===')) {
+                        const headerIndex = content.indexOf('===SECTION:HEADER===') + '===SECTION:HEADER==='.length;
+                        const contentStart = content.indexOf('===SECTION:CONTENT===');
+                        if (contentStart !== -1) {
+                            headerContent = content.substring(headerIndex, contentStart).trim();
                         }
-                    });
-                    document.getElementById('header').value = header.trim();
-                    document.getElementById('content').value = currentContent.trim();
-                    document.getElementById('footer').value = '';
+                    }
+                    if (content.includes('===SECTION:CONTENT===')) {
+                        const contentIndex = content.indexOf('===SECTION:CONTENT===') + '===SECTION:CONTENT==='.length;
+                        const footerStart = content.indexOf('===SECTION:FOOTER===');
+                        if (footerStart !== -1) {
+                            mainContent = content.substring(contentIndex, footerStart).trim();
+                        } else {
+                            mainContent = content.substring(contentIndex).trim();
+                        }
+                    }
+                    if (content.includes('===SECTION:FOOTER===')) {
+                        const footerIndex = content.indexOf('===SECTION:FOOTER===') + '===SECTION:FOOTER==='.length;
+                        footerContent = content.substring(footerIndex).trim();
+                    }
+
+                    // Assign parsed content to the respective textareas
+                    document.getElementById('header').value = headerContent;
+                    document.getElementById('content').value = mainContent;
+                    document.getElementById('footer').value = footerContent;
                     updatePreview();
                 };
                 reader.readAsText(file);
+            } else {
+                document.getElementById('status').textContent = 'No file selected.';
             }
         }
 
