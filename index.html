@@ -6,6 +6,8 @@
     <title>EasyDoc 2.0 - Custom Document Editor</title>
     <!-- Add CSP to allow jsPDF from cdnjs -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src 'self';">
+    <!-- Add a placeholder favicon to suppress 404 -->
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -178,6 +180,7 @@
             }
 
             addBox() {
+                console.log('Adding box, current max ID:', this.getMaxBoxId());
                 const doc = this.documents[this.currentDocument];
                 const newBoxId = this.getMaxBoxId() + 1;
                 this.currentBoxId = newBoxId + 1;
@@ -191,6 +194,7 @@
                 };
                 doc.boxes.push(newBox);
                 doc.order.push(newBoxId);
+                console.log('New box added, boxes:', doc.boxes);
                 return newBoxId;
             }
 
@@ -235,6 +239,7 @@
 
         function renderBoxes() {
             try {
+                console.log('Rendering boxes for document:', state.currentDocument);
                 boxesContainer.innerHTML = '';
                 const doc = state.documents[state.currentDocument];
                 doc.order.forEach((boxId, index) => {
@@ -258,13 +263,14 @@
                     boxesContainer.appendChild(boxDiv);
                 });
 
-                // Update button states with delegation
+                // Update button states
                 doc.order.forEach((boxId, index) => {
                     const upBtn = boxesContainer.querySelector(`#box-${boxId} [data-action="move-up"]`);
                     const downBtn = boxesContainer.querySelector(`#box-${boxId} [data-action="move-down"]`);
                     if (upBtn) upBtn.disabled = index === 0;
                     if (downBtn) downBtn.disabled = index === doc.order.length - 1;
                 });
+                console.log('Boxes rendered, current order:', doc.order);
             } catch (error) {
                 console.error('Render error:', error);
                 document.getElementById('status').textContent = 'Error rendering boxes!';
@@ -273,7 +279,8 @@
 
         function handleBoxActions(event) {
             const { action, boxId } = event.target.dataset;
-            if (!boxId) return;
+            console.log('Handling action:', action, 'for boxId:', boxId);
+            if (!action || !boxId) return;
 
             boxId = parseInt(boxId);
             const doc = state.documents[state.currentDocument];
@@ -293,6 +300,8 @@
                         document.getElementById('font-family').value = box.fontFamily;
                         document.getElementById('customize-panel').classList.add('active');
                         document.getElementById('customize-panel').dataset.boxId = boxId;
+                    } else {
+                        document.getElementById('status').textContent = 'Error: Box not found for customization!';
                     }
                     break;
                 case 'move-up':
@@ -316,6 +325,7 @@
 
         function applyCustomization() {
             const boxId = parseInt(document.getElementById('customize-panel').dataset.boxId);
+            console.log('Applying customization to boxId:', boxId);
             const doc = state.documents[state.currentDocument];
             const box = doc.boxes.find(b => b.id === boxId);
             if (box) {
@@ -328,11 +338,12 @@
                 renderBoxes();
                 updatePreview();
             } else {
-                document.getElementById('status').textContent = 'Error: Box not found!';
+                document.getElementById('status').textContent = 'Error: Box not found for customization!';
             }
         }
 
         function updatePreview() {
+            console.log('Updating preview for document:', state.currentDocument);
             const doc = state.documents[state.currentDocument];
             let preview = '';
             doc.order.forEach((boxId) => {
@@ -348,6 +359,7 @@
         }
 
         function generatePDF() {
+            console.log('Generating PDF for document:', state.currentDocument);
             const doc = state.documents[state.currentDocument];
             const filename = document.getElementById('filename-input').value || 'output.pdf';
             let pdfContent = '';
@@ -373,6 +385,7 @@
         }
 
         function saveContent() {
+            console.log('Saving content for document:', state.currentDocument);
             const doc = state.documents[state.currentDocument];
             doc.order.forEach(boxId => {
                 const box = doc.boxes.find(b => b.id === boxId);
@@ -393,6 +406,7 @@
         }
 
         function loadFile() {
+            console.log('Loading file');
             document.getElementById('fileInput').click();
         }
 
@@ -401,6 +415,7 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    console.log('Processing file content');
                     const content = e.target.result;
                     let newDocument = '';
                     let newBoxes = [];
@@ -458,6 +473,7 @@
         }
 
         function switchDocument(event) {
+            console.log('Switching to document:', event.target.value);
             state.switchDocument(event.target.value);
             renderBoxes();
             updatePreview();
@@ -466,7 +482,7 @@
         // Event delegation
         document.addEventListener('click', (event) => {
             handleBoxActions(event);
-            if (event.target.id === 'add-box-btn') handleBoxActions(event);
+            if (event.target.id === 'add-box-btn' || event.target.dataset.action) handleBoxActions(event);
         });
 
         // Initial setup
