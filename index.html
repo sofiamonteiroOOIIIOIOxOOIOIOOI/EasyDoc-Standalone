@@ -5,13 +5,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Generator</title>
     <style>
-        body { margin: 20px; font-family: Arial, sans-serif; }
-        .input-group { margin-bottom: 10px; }
-        label { display: block; margin: 5px 0; }
-        input, textarea, select { width: 100%; max-width: 600px; padding: 5px; box-sizing: border-box; }
-        button { padding: 8px 16px; margin-top: 10px; cursor: pointer; }
-        #output { max-width: 600px; border: 1px solid #ccc; padding: 10px; min-height: 200px; }
-        #status { color: #666; margin-top: 10px; }
+        body {
+            margin: 30px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, textarea, select {
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fff;
+            transition: border-color 0.2s;
+        }
+        #fileUpload {
+            padding: 8px;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        #resetBtn {
+            background: #e74c3c;
+            margin-left: 10px;
+        }
+        #resetBtn:hover {
+            background: #c0392b;
+        }
+        #addRowBtn {
+            background: #2ecc71;
+            margin-top: 5px;
+        }
+        #addRowBtn:hover {
+            background: #27ae60;
+        }
+        .format-btn {
+            padding: 5px 10px;
+            margin-right: 5px;
+            font-size: 12px;
+        }
+        #tableEditor {
+            width: 100%;
+            max-width: 600px;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+        #tableEditor th, #tableEditor td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #tableEditor th {
+            background: #ecf0f1;
+            font-weight: bold;
+        }
+        #tableEditor td:empty:before {
+            content: "Click to edit";
+            color: #bbb;
+            font-style: italic;
+        }
+        #output {
+            max-width: 600px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            min-height: 200px;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        #status {
+            color: #7f8c8d;
+            margin-top: 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -22,11 +122,28 @@
     </div>
     <div class="input-group">
         <label for="body">Body:</label>
-        <textarea id="body" rows="4" placeholder="Enter body text"></textarea>
+        <div>
+            <button id="boldBtn" class="format-btn">Bold</button>
+            <button id="italicBtn" class="format-btn">Italic</button>
+            <button id="headingBtn" class="format-btn">Heading</button>
+        </div>
+        <textarea id="body" placeholder="Enter your body text. Or use buttons above: Bold (**), Italic (*), Heading (#). Lists: - or * for bullets, 1. for numbered"></textarea>
     </div>
     <div class="input-group">
-        <label for="tableData">Table (e.g., Item1,Value1,Item2,Value2):</label>
-        <input type="text" id="tableData" placeholder="Comma-separated pairs">
+        <label>Table:</label>
+        <table id="tableEditor" border="1">
+            <thead>
+                <tr><th>Item</th><th>Value</th></tr>
+            </thead>
+            <tbody>
+                <tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>
+            </tbody>
+        </table>
+        <button id="addRowBtn">Add Row</button>
+    </div>
+    <div class="input-group">
+        <label for="fileUpload">Upload File (optional):</label>
+        <input type="file" id="fileUpload" accept=".txt,.md,.html">
     </div>
     <div class="input-group">
         <label for="style">Style:</label>
@@ -36,70 +153,183 @@
             <option value="mono">Monospace</option>
         </select>
     </div>
+    <div class="input-group">
+        <label for="format">Format:</label>
+        <select id="format">
+            <option value="html">HTML</option>
+            <option value="txt">Plain Text</option>
+            <option value="md">Markdown</option>
+            <option value="pdf">PDF</option>
+        </select>
+    </div>
     <button id="generateBtn">Generate File</button>
+    <button id="resetBtn">Reset</button>
     <div id="output"></div>
     <div id="status"></div>
 
     <script>
-        function getInputs() {
-            return {
-                title: document.getElementById('title').value.trim() || 'Untitled',
-                body: document.getElementById('body').value.trim() || 'No content yet',
-                tableData: document.getElementById('tableData').value.trim() || '',
-                style: document.getElementById('style').value
+        function throttle(func, delay) {
+            let timeout;
+            return function (...args) {
+                if (!timeout) {
+                    timeout = setTimeout(() => {
+                        func(...args);
+                        timeout = null;
+                    }, delay);
+                }
             };
         }
 
-        function buildContent({ title, body, tableData }) {
-            let html = `<h1>${escapeHTML(title)}</h1>`;
-            html += `<p>${escapeHTML(body).replace(/\n/g, '<br>')}</p>`;
-            if (tableData) {
-                const items = tableData.split(',').map(item => item.trim());
-                if (items.length % 2 !== 0) items.push('N/A');
-                html += `<table border="1"><tr><th>Item</th><th>Value</th></tr>`;
-                for (let i = 0; i < items.length; i += 2) {
-                    html += `<tr><td>${escapeHTML(items[i])}</td><td>${escapeHTML(items[i + 1])}</td></tr>`;
+        function getInputs() {
+            const rawTitle = document.getElementById('title').value.trim() || 'Untitled';
+            const filename = rawTitle.replace(/[<>:;"\/\\|?*]+/g, '').replace(/\s+/g, '_').substring(0, 50);
+            const tableRows = Array.from(document.querySelectorAll('#tableEditor tbody tr'));
+            const tableData = tableRows
+                .map(row => Array.from(row.cells).map(cell => cell.textContent.trim()))
+                .filter(row => row.some(cell => cell))
+                .flat()
+                .join(',');
+            return {
+                title: rawTitle,
+                filename: filename,
+                body: document.getElementById('body').value.trim() || 'No content yet',
+                tableData: tableData,
+                style: document.getElementById('style').value,
+                format: document.getElementById('format').value
+            };
+        }
+
+        function buildContent({ title, body, tableData, format }) {
+            let parsedBody = body;
+            if (format === 'html' || format === 'pdf') {
+                parsedBody = parsedBody.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+                parsedBody = parsedBody.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                parsedBody = parsedBody.replace(/\*(.+?)\*/g, '<em>$1</em>');
+                parsedBody = parsedBody.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
+                parsedBody = parsedBody.replace(/(<li>.+<\/li>(\n<li>.+<\/li>)*)/g, '<ul>$1</ul>');
+                parsedBody = parsedBody.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+                parsedBody = parsedBody.replace(/(<li>.+<\/li>(\n<li>.+<\/li>)*)/g, str => 
+                    str.match(/^\d+\./) ? `<ol>${str}</ol>` : str
+                );
+                parsedBody = parsedBody.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+                parsedBody = parsedBody.replace(/<\/[ou]l>\s*<[ou]l>/g, '');
+
+                let html = `<h1>${escapeHTML(title)}</h1>${parsedBody}`;
+                if (tableData) {
+                    const items = tableData.split(',').map(item => item.trim());
+                    if (items.length % 2 !== 0) items.push('N/A');
+                    html += `<table border="1"><tr><th>Item</th><th>Value</th></tr>`;
+                    for (let i = 0; i < items.length; i += 2) {
+                        html += `<tr><td>${escapeHTML(items[i])}</td><td>${escapeHTML(items[i + 1])}</td></tr>`;
+                    }
+                    html += `</table>`;
                 }
-                html += `</table>`;
+                return html;
+            } else if (format === 'txt') {
+                parsedBody = parsedBody.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1');
+                let txt = `${title}\n\n${parsedBody}\n\n`;
+                if (tableData) {
+                    const items = tableData.split(',').map(item => item.trim());
+                    if (items.length % 2 !== 0) items.push('N/A');
+                    txt += 'Item\tValue\n';
+                    for (let i = 0; i < items.length; i += 2) {
+                        txt += `${items[i]}\t${items[i + 1]}\n`;
+                    }
+                }
+                return txt;
+            } else if (format === 'md') {
+                let md = `# ${title}\n\n${parsedBody}\n\n`;
+                if (tableData) {
+                    const items = tableData.split(',').map(item => item.trim());
+                    if (items.length % 2 !== 0) items.push('N/A');
+                    md += '| Item | Value |\n|------|-------|\n';
+                    for (let i = 0; i < items.length; i += 2) {
+                        md += `| ${items[i]} | ${items[i + 1]} |\n`;
+                    }
+                }
+                return md;
             }
-            return html;
         }
 
         function escapeHTML(str) {
             return str.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"').replace(/'/g, '');
         }
 
-        function downloadFile(content, style) {
-            const fontFamily = style === 'times' ? 'Times New Roman, serif' : 
-                             style === 'mono' ? 'Courier New, monospace' : 
-                             'Arial, sans-serif';
-            const fullHTML = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        body { font-family: ${fontFamily}; margin: 20px; }
-                        table { border-collapse: collapse; }
-                        th, td { border: 1px solid black; padding: 5px; }
-                    </style>
-                </head>
-                <body>${content}</body>
-                </html>
-            `;
-            const blob = new Blob([fullHTML], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'document.html';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+        function downloadFile(content, style, filename, format) {
+            if (format === 'pdf') {
+                const fontFamily = style === 'times' ? 'Times New Roman, serif' : 
+                                 style === 'mono' ? 'Courier New, monospace' : 
+                                 'Arial, sans-serif';
+                const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body { font-family: ${fontFamily}; margin: 20px; }
+                            table { border-collapse: collapse; }
+                            th, td { border: 1px solid black; padding: 5px; }
+                            @media print { body { margin: 0; } }
+                        </style>
+                    </head>
+                    <body>${content}</body>
+                    </html>
+                `;
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(htmlContent);
+                newWindow.document.close();
+                newWindow.focus();
+                newWindow.print();
+                setTimeout(() => newWindow.close(), 100); // Close after print dialog (short delay)
+            } else {
+                let fullContent, mimeType;
+                if (format === 'html') {
+                    const fontFamily = style === 'times' ? 'Times New Roman, serif' : 
+                                     style === 'mono' ? 'Courier New, monospace' : 
+                                     'Arial, sans-serif';
+                    fullContent = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>
+                                body { font-family: ${fontFamily}; margin: 20px; }
+                                table { border-collapse: collapse; }
+                                th, td { border: 1px solid black; padding: 5px; }
+                            </style>
+                        </head>
+                        <body>${content}</body>
+                        </html>
+                    `;
+                    mimeType = 'text/html';
+                } else if (format === 'txt') {
+                    fullContent = content;
+                    mimeType = 'text/plain';
+                } else if (format === 'md') {
+                    fullContent = content;
+                    mimeType = 'text/markdown';
+                }
+
+                const blob = new Blob([fullContent], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${filename}.${format}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
         }
 
-        function updatePreview(content) {
-            document.getElementById('output').innerHTML = content;
+        function updatePreview() {
+            const inputs = getInputs();
+            const content = buildContent(inputs);
+            if (inputs.format === 'html') {
+                document.getElementById('output').innerHTML = content;
+            } else {
+                document.getElementById('output').innerHTML = '<p>Preview available in HTML mode only</p>';
+            }
         }
 
         function showStatus(message) {
@@ -108,17 +338,122 @@
             setTimeout(() => status.textContent = '', 3000);
         }
 
+        function parseFileContent(content, filename) {
+            const lines = content.split('\n').filter(line => line.trim());
+            const title = lines[0] || filename.replace(/\.[^.]+$/, '');
+            let body = '';
+            let tableLines = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].includes(',') || lines[i].includes('|') || lines[i].includes('\t')) {
+                    tableLines = lines.slice(i);
+                    break;
+                }
+                body += (body ? '\n' : '') + lines[i];
+            }
+
+            document.getElementById('title').value = title.trim();
+            document.getElementById('body').value = body.trim() || 'No content yet';
+            
+            const tbody = document.querySelector('#tableEditor tbody');
+            tbody.innerHTML = '';
+            if (tableLines.length) {
+                const items = tableLines.join(',').replace(/\|/g, ',').replace(/\t/g, ',').split(',').map(item => item.trim());
+                for (let i = 0; i < items.length; i += 2) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td contenteditable="true">${items[i]}</td><td contenteditable="true">${items[i + 1] || 'N/A'}</td>`;
+                    tbody.appendChild(row);
+                }
+            } else {
+                tbody.innerHTML = '<tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>';
+            }
+        }
+
+        function applyFormat(textarea, startTag, endTag) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            const selected = text.substring(start, end);
+            if (start !== end) {
+                textarea.value = text.substring(0, start) + startTag + selected + endTag + text.substring(end);
+            } else {
+                textarea.value = text.substring(0, start) + startTag + endTag + text.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + startTag.length;
+            }
+            textarea.focus();
+            throttledPreview();
+        }
+
+        const textarea = document.getElementById('body');
+        document.getElementById('boldBtn').addEventListener('click', () => applyFormat(textarea, '**', '**'));
+        document.getElementById('italicBtn').addEventListener('click', () => applyFormat(textarea, '*', '*'));
+        document.getElementById('headingBtn').addEventListener('click', () => {
+            const start = textarea.selectionStart;
+            const text = textarea.value;
+            const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+            if (text.substring(lineStart, start).trim() === '') {
+                textarea.value = text.substring(0, lineStart) + '# ' + text.substring(lineStart);
+                textarea.selectionStart = textarea.selectionEnd = start + 2;
+            } else {
+                textarea.value = text.substring(0, lineStart) + '# ' + text.substring(lineStart);
+                textarea.selectionStart = textarea.selectionEnd = lineStart + 2;
+            }
+            textarea.focus();
+            throttledPreview();
+        });
+
+        const throttledPreview = throttle(updatePreview, 300);
+        document.getElementById('title').addEventListener('input', throttledPreview);
+        document.getElementById('body').addEventListener('input', throttledPreview);
+        document.getElementById('format').addEventListener('change', updatePreview);
+        document.getElementById('tableEditor').addEventListener('input', throttledPreview);
+
+        document.getElementById('addRowBtn').addEventListener('click', () => {
+            const tbody = document.querySelector('#tableEditor tbody');
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = '<td contenteditable="true"></td><td contenteditable="true"></td>';
+            tbody.appendChild(newRow);
+            throttledPreview();
+        });
+
+        document.getElementById('fileUpload').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    parseFileContent(content, file.name);
+                    updatePreview();
+                    showStatus(`Loaded ${file.name}`);
+                };
+                reader.readAsText(file);
+            }
+        });
+
         document.getElementById('generateBtn').addEventListener('click', () => {
             const inputs = getInputs();
             const content = buildContent(inputs);
-            updatePreview(content);
-            downloadFile(content, inputs.style);
-            showStatus('File generated!');
+            updatePreview();
+            downloadFile(content, inputs.style, inputs.filename, inputs.format);
+            showStatus(`File generated as ${inputs.filename}.${inputs.format}!`);
             document.getElementById('title').value = '';
             document.getElementById('body').value = '';
-            document.getElementById('tableData').value = '';
+            document.getElementById('tableEditor').querySelector('tbody').innerHTML = '<tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>';
             document.getElementById('output').innerHTML = '';
         });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            document.getElementById('title').value = '';
+            document.getElementById('body').value = '';
+            document.getElementById('tableEditor').querySelector('tbody').innerHTML = '<tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>';
+            document.getElementById('style').value = 'arial';
+            document.getElementById('format').value = 'html';
+            document.getElementById('fileUpload').value = '';
+            updatePreview();
+            showStatus('Form reset!');
+        });
+
+        updatePreview();
     </script>
 </body>
 </html>
