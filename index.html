@@ -3,491 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EasyDoc 2.0 - Custom Document Editor</title>
-    <!-- Add CSP to allow jsPDF from cdnjs -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src 'self';">
-    <!-- Add a placeholder favicon to suppress 404 -->
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <title>Document Generator</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f0f0f0;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 1.5em;
-        }
-
-        .box {
-            background-color: #d3d3d3;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            width: 100%;
-            box-sizing: border-box;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-
-        .box-buttons {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
-            gap: 5px;
-        }
-
-        .box-buttons button {
-            padding: 5px 10px;
-            font-size: 0.8em;
-            width: auto;
-        }
-
-        textarea {
-            width: 100%;
-            min-height: 80px;
-            resize: vertical;
-            border: none;
-            background: transparent;
-            font-size: 1em;
-            transition: all 0.3s ease;
-        }
-
-        #preview-shape pre {
-            margin: 0;
-            white-space: pre-wrap;
-            background-color: #e0e0e0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        button {
-            padding: 10px 20px;
-            margin: 5px 0;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-            font-size: 1em;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-
-        #status {
-            color: #333;
-            word-wrap: break-word;
-        }
-
-        .customize-panel {
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            display: none;
-        }
-
-        .customize-panel.active {
-            display: block;
-        }
-
-        @media (max-width: 600px) {
-            h1 { font-size: 1.2em; }
-            .box { padding: 5px; margin: 5px 0; }
-            .box-buttons { top: 5px; right: 5px; flex-direction: column; gap: 2px; }
-            .box-buttons button { padding: 3px 6px; font-size: 0.7em; }
-            textarea { min-height: 60px; font-size: 0.9em; }
-            button { padding: 8px; font-size: 0.9em; }
-            select, input[type="text"], input[type="color"], input[type="number"] {
-                width: 100%; padding: 5px; font-size: 0.9em; margin: 5px 0;
-            }
-        }
+        body { margin: 20px; font-family: Arial, sans-serif; }
+        .input-group { margin-bottom: 10px; }
+        label { display: block; margin: 5px 0; }
+        input, textarea, select { width: 100%; max-width: 600px; padding: 5px; box-sizing: border-box; }
+        button { padding: 8px 16px; margin-top: 10px; cursor: pointer; }
+        #output { max-width: 600px; border: 1px solid #ccc; padding: 10px; min-height: 200px; }
+        #status { color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>EasyDoc 2.0 - Custom Document Editor</h1>
-
-    <label for="document-select">Select Document:</label>
-    <select id="document-select" onchange="switchDocument(event)">
-        <option value="portfolio">Portfolio</option>
-        <option value="curriculum">Curriculum</option>
-        <option value="new">New Document...</option>
-    </select>
-
-    <div id="boxes"></div>
-
-    <button id="add-box-btn" data-action="add-box">Add Box</button>
-
-    <div id="customize-panel" class="customize-panel">
-        <label for="box-color">Background Color:</label>
-        <input type="color" id="box-color" value="#d3d3d3">
-        <label for="font-size">Font Size (px):</label>
-        <input type="number" id="font-size" value="16" min="10" max="30">
-        <label for="font-family">Font Family:</label>
-        <select id="font-family">
-            <option value="Arial">Arial</option>
-            <option value="Times New Roman">Times New Roman</option>
-            <option value="Courier New">Courier New</option>
+    <h2>Document Generator</h2>
+    <div class="input-group">
+        <label for="title">Title:</label>
+        <input type="text" id="title" placeholder="Enter title">
+    </div>
+    <div class="input-group">
+        <label for="body">Body:</label>
+        <textarea id="body" rows="4" placeholder="Enter body text"></textarea>
+    </div>
+    <div class="input-group">
+        <label for="tableData">Table (e.g., Item1,Value1,Item2,Value2):</label>
+        <input type="text" id="tableData" placeholder="Comma-separated pairs">
+    </div>
+    <div class="input-group">
+        <label for="style">Style:</label>
+        <select id="style">
+            <option value="arial">Arial</option>
+            <option value="times">Times New Roman</option>
+            <option value="mono">Monospace</option>
         </select>
-        <button onclick="applyCustomization()">Apply</button>
     </div>
+    <button id="generateBtn">Generate File</button>
+    <div id="output"></div>
+    <div id="status"></div>
 
-    <button onclick="updatePreview()">Refresh Preview</button>
-
-    <div id="preview-shape">
-        <label for="preview">Preview:</label>
-        <pre id="preview">Preview will appear here...</pre>
-    </div>
-
-    <button onclick="saveContent()">Save Content</button>
-
-    <button onclick="loadFile()">Load File into Content</button>
-    <input type="file" id="fileInput" style="display:none;" accept=".txt" onchange="handleFileSelect(event)">
-
-    <button onclick="generatePDF()">Generate PDF</button>
-
-    <label for="filename-input">Output Filename:</label>
-    <input type="text" id="filename-input" value="output.pdf">
-
-    <p id="status"></p>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
-        class DocStateManager {
-            constructor() {
-                this.documents = {
-                    'portfolio': { boxes: [{ id: 0, content: 'Start typing here...', color: '#d3d3d3', fontSize: 16, fontFamily: 'Arial' }], order: [0] },
-                    'curriculum': { boxes: [{ id: 0, content: 'Start typing here...', color: '#d3d3d3', fontSize: 16, fontFamily: 'Arial' }], order: [0] }
-                };
-                this.currentDocument = 'portfolio';
-                this.currentBoxId = 1;
-            }
+        function getInputs() {
+            return {
+                title: document.getElementById('title').value.trim() || 'Untitled',
+                body: document.getElementById('body').value.trim() || 'No content yet',
+                tableData: document.getElementById('tableData').value.trim() || '',
+                style: document.getElementById('style').value
+            };
+        }
 
-            getMaxBoxId() {
-                const doc = this.documents[this.currentDocument];
-                return doc.boxes.reduce((max, box) => Math.max(max, box.id), -1);
-            }
-
-            addBox() {
-                console.log('Adding box, current max ID:', this.getMaxBoxId());
-                const doc = this.documents[this.currentDocument];
-                const newBoxId = this.getMaxBoxId() + 1;
-                this.currentBoxId = newBoxId + 1;
-                const defaultBox = doc.boxes[0] || { color: '#d3d3d3', fontSize: 16, fontFamily: 'Arial' };
-                const newBox = {
-                    id: newBoxId,
-                    content: 'Start typing here...',
-                    color: defaultBox.color,
-                    fontSize: defaultBox.fontSize,
-                    fontFamily: defaultBox.fontFamily
-                };
-                doc.boxes.push(newBox);
-                doc.order.push(newBoxId);
-                console.log('New box added, boxes:', doc.boxes);
-                return newBoxId;
-            }
-
-            updateBox(boxId, updates) {
-                const doc = this.documents[this.currentDocument];
-                const box = doc.boxes.find(b => b.id === boxId);
-                if (box) Object.assign(box, updates);
-                return box;
-            }
-
-            deleteBox(boxId) {
-                const doc = this.documents[this.currentDocument];
-                const index = doc.order.indexOf(boxId);
-                if (index !== -1) {
-                    doc.order.splice(index, 1);
-                    doc.boxes = doc.boxes.filter(b => b.id !== boxId);
+        function buildContent({ title, body, tableData }) {
+            let html = `<h1>${escapeHTML(title)}</h1>`;
+            html += `<p>${escapeHTML(body).replace(/\n/g, '<br>')}</p>`;
+            if (tableData) {
+                const items = tableData.split(',').map(item => item.trim());
+                if (items.length % 2 !== 0) items.push('N/A');
+                html += `<table border="1"><tr><th>Item</th><th>Value</th></tr>`;
+                for (let i = 0; i < items.length; i += 2) {
+                    html += `<tr><td>${escapeHTML(items[i])}</td><td>${escapeHTML(items[i + 1])}</td></tr>`;
                 }
+                html += `</table>`;
             }
-
-            switchDocument(docName) {
-                if (docName === 'new') {
-                    let newName = prompt('Enter a name for the new document:');
-                    if (newName && !this.documents[newName.toLowerCase()]) {
-                        newName = newName.toLowerCase();
-                        this.documents[newName] = { boxes: [{ id: 0, content: 'Start typing here...', color: '#d3d3d3', fontSize: 16, fontFamily: 'Arial' }], order: [0] };
-                        const select = document.getElementById('document-select');
-                        select.add(new Option(newName, newName));
-                        select.value = newName;
-                        this.currentDocument = newName;
-                    } else {
-                        document.getElementById('status').textContent = 'Document name already exists or invalid!';
-                        return;
-                    }
-                } else {
-                    this.currentDocument = docName;
-                }
-            }
+            return html;
         }
 
-        const state = new DocStateManager();
-        const boxesContainer = document.getElementById('boxes');
-
-        function renderBoxes() {
-            try {
-                console.log('Rendering boxes for document:', state.currentDocument);
-                boxesContainer.innerHTML = '';
-                const doc = state.documents[state.currentDocument];
-                doc.order.forEach((boxId, index) => {
-                    const box = doc.boxes.find(b => b.id === boxId);
-                    if (!box) {
-                        console.error(`Box with id ${boxId} not found`);
-                        return;
-                    }
-                    const textarea = document.createElement('textarea');
-                    textarea.id = `textarea-${boxId}`;
-                    textarea.value = box.content;
-
-                    const boxDiv = document.createElement('div');
-                    boxDiv.className = 'box';
-                    boxDiv.id = `box-${boxId}`;
-                    boxDiv.style.backgroundColor = box.color;
-                    textarea.style.fontSize = `${box.fontSize}px`;
-                    textarea.style.fontFamily = box.fontFamily;
-                    boxDiv.innerHTML = `<label for="textarea-${boxId}">Text Box ${boxId + 1}:</label>${textarea.outerHTML}<div class="box-buttons"><button data-action="customize" data-box-id="${boxId}">Customize</button><button data-action="move-up" data-box-id="${boxId}">Move Up</button><button data-action="move-down" data-box-id="${boxId}">Move Down</button></div>`;
-
-                    boxesContainer.appendChild(boxDiv);
-                });
-
-                // Update button states
-                doc.order.forEach((boxId, index) => {
-                    const upBtn = boxesContainer.querySelector(`#box-${boxId} [data-action="move-up"]`);
-                    const downBtn = boxesContainer.querySelector(`#box-${boxId} [data-action="move-down"]`);
-                    if (upBtn) upBtn.disabled = index === 0;
-                    if (downBtn) downBtn.disabled = index === doc.order.length - 1;
-                });
-                console.log('Boxes rendered, current order:', doc.order);
-            } catch (error) {
-                console.error('Render error:', error);
-                document.getElementById('status').textContent = 'Error rendering boxes!';
-            }
+        function escapeHTML(str) {
+            return str.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"').replace(/'/g, '');
         }
 
-        function handleBoxActions(event) {
-            const { action, boxId } = event.target.dataset;
-            console.log('Handling action:', action, 'for boxId:', boxId);
-            if (!action || !boxId) return;
-
-            boxId = parseInt(boxId);
-            const doc = state.documents[state.currentDocument];
-
-            switch (action) {
-                case 'add-box':
-                    const newBoxId = state.addBox();
-                    renderBoxes();
-                    updatePreview();
-                    document.getElementById('status').textContent = `Added new box: Text Box ${newBoxId + 1}`;
-                    break;
-                case 'customize':
-                    const box = doc.boxes.find(b => b.id === boxId);
-                    if (box) {
-                        document.getElementById('box-color').value = box.color;
-                        document.getElementById('font-size').value = box.fontSize;
-                        document.getElementById('font-family').value = box.fontFamily;
-                        document.getElementById('customize-panel').classList.add('active');
-                        document.getElementById('customize-panel').dataset.boxId = boxId;
-                    } else {
-                        document.getElementById('status').textContent = 'Error: Box not found for customization!';
-                    }
-                    break;
-                case 'move-up':
-                    const upIndex = doc.order.indexOf(boxId);
-                    if (upIndex > 0) {
-                        [doc.order[upIndex], doc.order[upIndex - 1]] = [doc.order[upIndex - 1], doc.order[upIndex]];
-                        renderBoxes();
-                        updatePreview();
-                    }
-                    break;
-                case 'move-down':
-                    const downIndex = doc.order.indexOf(boxId);
-                    if (downIndex < doc.order.length - 1) {
-                        [doc.order[downIndex], doc.order[downIndex + 1]] = [doc.order[downIndex + 1], doc.order[downIndex]];
-                        renderBoxes();
-                        updatePreview();
-                    }
-                    break;
-            }
-        }
-
-        function applyCustomization() {
-            const boxId = parseInt(document.getElementById('customize-panel').dataset.boxId);
-            console.log('Applying customization to boxId:', boxId);
-            const doc = state.documents[state.currentDocument];
-            const box = doc.boxes.find(b => b.id === boxId);
-            if (box) {
-                state.updateBox(boxId, {
-                    color: document.getElementById('box-color').value,
-                    fontSize: parseInt(document.getElementById('font-size').value),
-                    fontFamily: document.getElementById('font-family').value
-                });
-                document.getElementById('customize-panel').classList.remove('active');
-                renderBoxes();
-                updatePreview();
-            } else {
-                document.getElementById('status').textContent = 'Error: Box not found for customization!';
-            }
-        }
-
-        function updatePreview() {
-            console.log('Updating preview for document:', state.currentDocument);
-            const doc = state.documents[state.currentDocument];
-            let preview = '';
-            doc.order.forEach((boxId) => {
-                const box = doc.boxes.find(b => b.id === boxId);
-                const textarea = document.getElementById(`textarea-${boxId}`);
-                if (textarea) box.content = textarea.value;
-                if (box && box.content) {
-                    if (preview) preview += '\n\n';
-                    preview += box.content;
-                }
-            });
-            document.getElementById('preview').textContent = preview;
-        }
-
-        function generatePDF() {
-            console.log('Generating PDF for document:', state.currentDocument);
-            const doc = state.documents[state.currentDocument];
-            const filename = document.getElementById('filename-input').value || 'output.pdf';
-            let pdfContent = '';
-            doc.order.forEach((boxId) => {
-                const box = doc.boxes.find(b => b.id === boxId);
-                const textarea = document.getElementById(`textarea-${boxId}`);
-                if (textarea) box.content = textarea.value;
-                if (box && box.content) {
-                    if (pdfContent) pdfContent += '\n\n';
-                    pdfContent += box.content;
-                }
-            });
-
-            const { jsPDF } = window.jspdf;
-            if (jsPDF) {
-                const pdf = new jsPDF();
-                pdf.text(pdfContent, 10, 10);
-                pdf.save(filename);
-                document.getElementById('status').textContent = `PDF generated as ${filename}`;
-            } else {
-                document.getElementById('status').textContent = 'Error: jsPDF not loaded!';
-            }
-        }
-
-        function saveContent() {
-            console.log('Saving content for document:', state.currentDocument);
-            const doc = state.documents[state.currentDocument];
-            doc.order.forEach(boxId => {
-                const box = doc.boxes.find(b => b.id === boxId);
-                const textarea = document.getElementById(`textarea-${boxId}`);
-                if (textarea) box.content = textarea.value;
-            });
-            let fullContent = `===DOCUMENT:${state.currentDocument}===\n===BOXES===\n`;
-            doc.boxes.forEach(box => {
-                fullContent += `id:${box.id},content:${box.content.replace(/,/g, '\\,')},color:${box.color},fontSize:${box.fontSize},fontFamily:${box.fontFamily}\n`;
-            });
-            fullContent += `===ORDER===\n${doc.order.join(',')}`;
-            const blob = new Blob([fullContent], { type: 'text/plain' });
+        function downloadFile(content, style) {
+            const fontFamily = style === 'times' ? 'Times New Roman, serif' : 
+                             style === 'mono' ? 'Courier New, monospace' : 
+                             'Arial, sans-serif';
+            const fullHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: ${fontFamily}; margin: 20px; }
+                        table { border-collapse: collapse; }
+                        th, td { border: 1px solid black; padding: 5px; }
+                    </style>
+                </head>
+                <body>${content}</body>
+                </html>
+            `;
+            const blob = new Blob([fullHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${state.currentDocument}_save.txt`;
+            link.href = url;
+            link.download = 'document.html';
+            document.body.appendChild(link);
             link.click();
-            document.getElementById('status').textContent = `Content saved as ${state.currentDocument}_save.txt`;
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
 
-        function loadFile() {
-            console.log('Loading file');
-            document.getElementById('fileInput').click();
+        function updatePreview(content) {
+            document.getElementById('output').innerHTML = content;
         }
 
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    console.log('Processing file content');
-                    const content = e.target.result;
-                    let newDocument = '';
-                    let newBoxes = [];
-                    let newOrder = [];
-
-                    if (content.includes('===DOCUMENT:')) {
-                        const docStart = content.indexOf('===DOCUMENT:') + '===DOCUMENT:'.length;
-                        const docEnd = content.indexOf('===', docStart);
-                        newDocument = content.substring(docStart, docEnd).trim().toLowerCase();
-                    }
-
-                    let boxesStart = content.indexOf('===BOXES===') + '===BOXES==='.length;
-                    let orderStart = content.indexOf('===ORDER===');
-                    if (boxesStart !== -1 && orderStart !== -1) {
-                        const boxesContent = content.substring(boxesStart, orderStart).trim().split('\n');
-                        boxesContent.forEach(line => {
-                            if (line) {
-                                const parts = line.split(',content:');
-                                const idPart = parts[0];
-                                const rest = parts[1].split(',color:');
-                                const contentPart = rest[0].replace(/\\,/g, ',');
-                                const rest2 = rest[1].split(',fontSize:');
-                                const colorPart = rest2[0];
-                                const rest3 = rest2[1].split(',fontFamily:');
-                                const fontSizePart = rest3[0];
-                                const fontFamilyPart = rest3[1];
-
-                                const id = parseInt(idPart.split(':')[1]);
-                                newBoxes.push({ id, content: contentPart, color: colorPart, fontSize: parseInt(fontSizePart), fontFamily: fontFamilyPart });
-                                if (id >= state.currentBoxId) state.currentBoxId = id + 1;
-                            }
-                        });
-
-                        newOrder = content.substring(orderStart + '===ORDER==='.length).trim().split(',').map(id => parseInt(id));
-                    }
-
-                    if (newDocument && newBoxes.length > 0 && newOrder.length > 0) {
-                        state.documents[newDocument] = { boxes: newBoxes, order: newOrder };
-                        if (!document.getElementById('document-select').querySelector(`option[value="${newDocument}"]`)) {
-                            document.getElementById('document-select').add(new Option(newDocument, newDocument));
-                        }
-                        document.getElementById('document-select').value = newDocument;
-                        state.currentDocument = newDocument;
-                        renderBoxes();
-                        updatePreview();
-                        document.getElementById('status').textContent = `Loaded document: ${newDocument}`;
-                    } else {
-                        document.getElementById('status').textContent = 'Invalid file format!';
-                    }
-                };
-                reader.readAsText(file);
-            } else {
-                document.getElementById('status').textContent = 'No file selected!';
-            }
+        function showStatus(message) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            setTimeout(() => status.textContent = '', 3000);
         }
 
-        function switchDocument(event) {
-            console.log('Switching to document:', event.target.value);
-            state.switchDocument(event.target.value);
-            renderBoxes();
-            updatePreview();
-        }
-
-        // Event delegation
-        document.addEventListener('click', (event) => {
-            handleBoxActions(event);
-            if (event.target.id === 'add-box-btn' || event.target.dataset.action) handleBoxActions(event);
+        document.getElementById('generateBtn').addEventListener('click', () => {
+            const inputs = getInputs();
+            const content = buildContent(inputs);
+            updatePreview(content);
+            downloadFile(content, inputs.style);
+            showStatus('File generated!');
+            document.getElementById('title').value = '';
+            document.getElementById('body').value = '';
+            document.getElementById('tableData').value = '';
+            document.getElementById('output').innerHTML = '';
         });
-
-        // Initial setup
-        renderBoxes();
-        updatePreview();
     </script>
 </body>
 </html>
