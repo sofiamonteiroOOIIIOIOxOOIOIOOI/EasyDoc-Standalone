@@ -66,6 +66,20 @@
         #resetBtn:hover {
             background: #c0392b;
         }
+        #saveBtn {
+            background: #f1c40f;
+            margin-left: 10px;
+        }
+        #saveBtn:hover {
+            background: #d4ac0d;
+        }
+        #loadBtn {
+            background: #9b59b6;
+            margin-left: 10px;
+        }
+        #loadBtn:hover {
+            background: #8e44ad;
+        }
         #addRowBtn {
             background: #2ecc71;
             margin-top: 5px;
@@ -165,6 +179,8 @@
     </div>
     <button id="generateBtn">Generate File</button>
     <button id="resetBtn">Reset</button>
+    <button id="saveBtn">Save</button>
+    <button id="loadBtn">Load</button>
     <div id="output"></div>
     <div id="status"></div>
 
@@ -187,9 +203,7 @@
             const tableRows = Array.from(document.querySelectorAll('#tableEditor tbody tr'));
             const tableData = tableRows
                 .map(row => Array.from(row.cells).map(cell => cell.textContent.trim()))
-                .filter(row => row.some(cell => cell))
-                .flat()
-                .join(',');
+                .filter(row => row.some(cell => cell));
             return {
                 title: rawTitle,
                 filename: filename,
@@ -217,13 +231,11 @@
                 parsedBody = parsedBody.replace(/<\/[ou]l>\s*<[ou]l>/g, '');
 
                 let html = `<h1>${escapeHTML(title)}</h1>${parsedBody}`;
-                if (tableData) {
-                    const items = tableData.split(',').map(item => item.trim());
-                    if (items.length % 2 !== 0) items.push('N/A');
+                if (tableData.length) {
                     html += `<table border="1"><tr><th>Item</th><th>Value</th></tr>`;
-                    for (let i = 0; i < items.length; i += 2) {
-                        html += `<tr><td>${escapeHTML(items[i])}</td><td>${escapeHTML(items[i + 1])}</td></tr>`;
-                    }
+                    tableData.forEach(row => {
+                        html += `<tr><td>${escapeHTML(row[0])}</td><td>${escapeHTML(row[1])}</td></tr>`;
+                    });
                     html += `</table>`;
                 }
                 return html;
@@ -231,24 +243,20 @@
                 parsedBody = parsedBody.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
                 parsedBody = parsedBody.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1');
                 let txt = `${title}\n\n${parsedBody}\n\n`;
-                if (tableData) {
-                    const items = tableData.split(',').map(item => item.trim());
-                    if (items.length % 2 !== 0) items.push('N/A');
+                if (tableData.length) {
                     txt += 'Item\tValue\n';
-                    for (let i = 0; i < items.length; i += 2) {
-                        txt += `${items[i]}\t${items[i + 1]}\n`;
-                    }
+                    tableData.forEach(row => {
+                        txt += `${row[0]}\t${row[1]}\n`;
+                    });
                 }
                 return txt;
             } else if (format === 'md') {
                 let md = `# ${title}\n\n${parsedBody}\n\n`;
-                if (tableData) {
-                    const items = tableData.split(',').map(item => item.trim());
-                    if (items.length % 2 !== 0) items.push('N/A');
+                if (tableData.length) {
                     md += '| Item | Value |\n|------|-------|\n';
-                    for (let i = 0; i < items.length; i += 2) {
-                        md += `| ${items[i]} | ${items[i + 1]} |\n`;
-                    }
+                    tableData.forEach(row => {
+                        md += `| ${row[0]} | ${row[1]} |\n`;
+                    });
                 }
                 return md;
             }
@@ -364,11 +372,52 @@
                 const items = tableLines.join(',').replace(/\|/g, ',').replace(/\t/g, ',').split(',').map(item => item.trim());
                 for (let i = 0; i < items.length; i += 2) {
                     const row = document.createElement('tr');
-                    row.innerHTML = `<td contenteditable="true">${items[i]}</td><td contenteditable="true">${items[i + 1] || 'N/A'}</td>`;
+                    row.innerHTML = `<td contenteditable="true">${items[i]}</td><td contenteditable="true">${items[i + 1] || ''}</td>`;
                     tbody.appendChild(row);
                 }
             } else {
                 tbody.innerHTML = '<tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>';
+            }
+        }
+
+        function saveDocument() {
+            const inputs = getInputs();
+            const saveData = {
+                title: inputs.title,
+                body: inputs.body,
+                tableData: inputs.tableData,
+                style: inputs.style,
+                format: inputs.format
+            };
+            localStorage.setItem('docGeneratorState', JSON.stringify(saveData));
+            showStatus('Document saved!');
+        }
+
+        function loadDocument() {
+            const savedData = localStorage.getItem('docGeneratorState');
+            if (savedData) {
+                const { title, body, tableData, style, format } = JSON.parse(savedData);
+                document.getElementById('title').value = title;
+                document.getElementById('body').value = body;
+                document.getElementById('style').value = style;
+                document.getElementById('format').value = format;
+
+                const tbody = document.querySelector('#tableEditor tbody');
+                tbody.innerHTML = '';
+                if (tableData.length) {
+                    tableData.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td contenteditable="true">${row[0]}</td><td contenteditable="true">${row[1]}</td>`;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>';
+                }
+
+                updatePreview();
+                showStatus('Document loaded!');
+            } else {
+                showStatus('No saved document found.');
             }
         }
 
@@ -418,15 +467,13 @@
             const end = textarea.selectionEnd;
             const text = textarea.value;
             const selected = text.substring(start, end);
-            console.log('Link button clicked, selected text:', selected); // Debug
             const url = window.prompt('Enter the URL (e.g., https://example.com):');
-            console.log('URL entered:', url); // Debug
             if (url === null) {
                 showStatus('Link creation cancelled');
                 return;
             }
             const linkText = selected || 'link';
-            const linkUrl = url.trim() === '' ? 'https://example.com' : url; // Default if empty
+            const linkUrl = url.trim() === '' ? 'https://example.com' : url;
             const linkSyntax = `[${linkText}](${linkUrl})`;
             const newText = text.substring(0, start) + linkSyntax + text.substring(end);
             const newCursorPos = start + linkSyntax.length;
@@ -487,6 +534,20 @@
             updatePreview();
             showStatus('Form reset!');
         });
+
+        document.getElementById('saveBtn').addEventListener('click', saveDocument);
+        document.getElementById('loadBtn').addEventListener('click', loadDocument);
+
+        // Auto-save every 30 seconds if changes detected
+        let lastSaved = null;
+        setInterval(() => {
+            const currentInputs = getInputs();
+            const currentState = JSON.stringify(currentInputs);
+            if (lastSaved !== currentState && currentInputs.body !== 'No content yet') {
+                saveDocument();
+                lastSaved = currentState;
+            }
+        }, 30000);
 
         updatePreview();
     </script>
