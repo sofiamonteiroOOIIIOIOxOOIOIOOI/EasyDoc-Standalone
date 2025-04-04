@@ -126,8 +126,9 @@
             <button id="boldBtn" class="format-btn">Bold</button>
             <button id="italicBtn" class="format-btn">Italic</button>
             <button id="headingBtn" class="format-btn">Heading</button>
+            <button id="linkBtn" class="format-btn">Link</button>
         </div>
-        <textarea id="body" placeholder="Enter your body text. Or use buttons above: Bold (**), Italic (*), Heading (#). Lists: - or * for bullets, 1. for numbered"></textarea>
+        <textarea id="body" placeholder="Enter your body text. Or use buttons: Bold (**), Italic (*), Heading (#), Link ([text](url)). Lists: - or * for bullets, 1. for numbered"></textarea>
     </div>
     <div class="input-group">
         <label>Table:</label>
@@ -202,6 +203,7 @@
         function buildContent({ title, body, tableData, format }) {
             let parsedBody = body;
             if (format === 'html' || format === 'pdf') {
+                parsedBody = parsedBody.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
                 parsedBody = parsedBody.replace(/^# (.+)$/gm, '<h1>$1</h1>');
                 parsedBody = parsedBody.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
                 parsedBody = parsedBody.replace(/\*(.+?)\*/g, '<em>$1</em>');
@@ -226,6 +228,7 @@
                 }
                 return html;
             } else if (format === 'txt') {
+                parsedBody = parsedBody.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
                 parsedBody = parsedBody.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1');
                 let txt = `${title}\n\n${parsedBody}\n\n`;
                 if (tableData) {
@@ -280,7 +283,7 @@
                 newWindow.document.close();
                 newWindow.focus();
                 newWindow.print();
-                setTimeout(() => newWindow.close(), 100); // Close after print dialog (short delay)
+                setTimeout(() => newWindow.close(), 100);
             } else {
                 let fullContent, mimeType;
                 if (format === 'html') {
@@ -374,12 +377,16 @@
             const end = textarea.selectionEnd;
             const text = textarea.value;
             const selected = text.substring(start, end);
+            let newText, newCursorPos;
             if (start !== end) {
-                textarea.value = text.substring(0, start) + startTag + selected + endTag + text.substring(end);
+                newText = text.substring(0, start) + startTag + selected + endTag + text.substring(end);
+                newCursorPos = start + startTag.length + selected.length + endTag.length;
             } else {
-                textarea.value = text.substring(0, start) + startTag + endTag + text.substring(end);
-                textarea.selectionStart = textarea.selectionEnd = start + startTag.length;
+                newText = text.substring(0, start) + startTag + endTag + text.substring(end);
+                newCursorPos = start + startTag.length;
             }
+            textarea.value = newText;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
             textarea.focus();
             throttledPreview();
         }
@@ -389,17 +396,45 @@
         document.getElementById('italicBtn').addEventListener('click', () => applyFormat(textarea, '*', '*'));
         document.getElementById('headingBtn').addEventListener('click', () => {
             const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
             const text = textarea.value;
             const lineStart = text.lastIndexOf('\n', start - 1) + 1;
-            if (text.substring(lineStart, start).trim() === '') {
-                textarea.value = text.substring(0, lineStart) + '# ' + text.substring(lineStart);
-                textarea.selectionStart = textarea.selectionEnd = start + 2;
+            const selected = text.substring(start, end);
+            let newText, newCursorPos;
+            if (start !== end && text.substring(lineStart, start).trim() === '') {
+                newText = text.substring(0, lineStart) + '# ' + selected + text.substring(end);
+                newCursorPos = lineStart + 2 + selected.length;
             } else {
-                textarea.value = text.substring(0, lineStart) + '# ' + text.substring(lineStart);
-                textarea.selectionStart = textarea.selectionEnd = lineStart + 2;
+                newText = text.substring(0, lineStart) + '# ' + text.substring(lineStart);
+                newCursorPos = lineStart + 2 + (start - lineStart);
             }
+            textarea.value = newText;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
             textarea.focus();
             throttledPreview();
+        });
+        document.getElementById('linkBtn').addEventListener('click', () => {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            const selected = text.substring(start, end);
+            console.log('Link button clicked, selected text:', selected); // Debug
+            const url = window.prompt('Enter the URL (e.g., https://example.com):');
+            console.log('URL entered:', url); // Debug
+            if (url === null) {
+                showStatus('Link creation cancelled');
+                return;
+            }
+            const linkText = selected || 'link';
+            const linkUrl = url.trim() === '' ? 'https://example.com' : url; // Default if empty
+            const linkSyntax = `[${linkText}](${linkUrl})`;
+            const newText = text.substring(0, start) + linkSyntax + text.substring(end);
+            const newCursorPos = start + linkSyntax.length;
+            textarea.value = newText;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+            textarea.focus();
+            throttledPreview();
+            showStatus(`Added link: ${linkSyntax}`);
         });
 
         const throttledPreview = throttle(updatePreview, 300);
